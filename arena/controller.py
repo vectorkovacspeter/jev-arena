@@ -194,9 +194,11 @@ class Controller:
                             await measure(adapter,cases,adapter.folder/"performance",req.paid_cap_usd)
                         if needs_episodes:
                             self.store.status(rid,"episodes")
-                            episodes=await run_episodes(adapter,40 if req.preset=="full" else 4,req.paid_cap_usd,on_progress=lambda row:self.store.event(rid,"episode",{k:v for k,v in row.items() if k!='trace'}))
+                            # Run language is frozen in the manifest; runs recorded before i18n have no field and are English.
+                            lang=run["manifest"].get("language","en")
+                            episodes=await run_episodes(adapter,40 if req.preset=="full" else 4,req.paid_cap_usd,on_progress=lambda row:self.store.event(rid,"episode",{k:v for k,v in row.items() if k!='trace'}),lang=lang)
                             if req.preset=='full':
-                                episodes+=await run_episodes(adapter,40,req.paid_cap_usd,deadline_ms=500,on_progress=lambda row:self.store.event(rid,'episode',{k:v for k,v in row.items() if k!='trace'}))
+                                episodes+=await run_episodes(adapter,40,req.paid_cap_usd,deadline_ms=500,on_progress=lambda row:self.store.event(rid,'episode',{k:v for k,v in row.items() if k!='trace'}),lang=lang)
                             write_json(adapter.folder/"episodes.json",episodes)
                         self.store.event(rid,"model_complete",{"model_id":mid,"cost_usd":adapter.cost,"cost_reserved_usd":adapter.reserved})
                     finally:
