@@ -241,4 +241,6 @@ export type DataSlot = {
   available: number | null;
   licence: string | null;
   reason: string | null;
+  /** Machine-translated slot whose output must be reviewed before results are trusted. */
+  needs_review?: boolean;
 };

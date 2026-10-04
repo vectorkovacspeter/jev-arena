@@ -70,7 +70,8 @@ def test_hungarian_inventory(hu_data):
     assert slots["agnews"]["available"] == 0 and not slots["agnews"]["ready"]
     assert slots["fresh"]["ready"] and slots["fresh"]["expected"] == slots["fresh"]["available"] == 1440
     assert slots["episodes"]["expected"] is None
-    assert all(set(s) == {"slot", "pack", "family", "source", "ready", "expected", "available", "licence", "reason"} for s in inv["slots"])
+    assert all(set(s) == {"slot", "pack", "family", "source", "ready", "expected", "available", "licence", "reason", "needs_review"} for s in inv["slots"])
+    assert slots["jevbench"]["needs_review"] is True and slots["sst2"]["needs_review"] is False
     pk = {p["name"]: p for p in inv["packs"]}
     assert pk["Classification"] == {"name": "Classification", "expected": 1500, "available": 500, "ready": False}
     assert "ABCD next action" not in pk

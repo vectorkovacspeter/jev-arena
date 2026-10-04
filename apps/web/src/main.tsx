@@ -1847,6 +1847,11 @@ function Setup({
                       <span className={s.ready ? "accent" : "muted"}>
                         {s.ready ? <Check size={13} /> : <Circle size={10} />} {slotStatus(s)}
                       </span>
+                      {s.needs_review && (
+                        <small className="slot-reason slot-review" title={t("setup.testData.needsReviewHint")}>
+                          {t("setup.testData.needsReview")}
+                        </small>
+                      )}
                       {s.source === "missing" && s.reason && (
                         <EnglishOnly>
                           <small className="muted slot-reason">{s.reason}</small>

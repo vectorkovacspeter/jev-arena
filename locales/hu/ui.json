@@ -476,6 +476,8 @@
         "missing": "Hiányzik"
       },
       "notInSuite": "Nem része a Teljes tesztcsomagnak",
+      "needsReview": "Ellenőrzésre vár",
+      "needsReviewHint": "Gépi fordítás: mielőtt megbízol az ebből a tételből származó eredményekben, nézz át egy mintát (python -m arena.i18n review).",
       "count": "{{available}} / {{expected}}"
     }
   },

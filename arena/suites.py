@@ -104,7 +104,8 @@ def slot_rows(slots, cases, expected):
             else: have = by_slot.get(slot_id, 0) + sum(n for (pack, _), n in by_family.items() if pack == slot.pack)
             ready = have == want
         rows.append({"slot": slot_id, "pack": slot.pack, "family": slot.family, "source": slot.source, "ready": ready,
-                     "expected": want, "available": have, "licence": slot.licence, "reason": slot.reason})
+                     "expected": want, "available": have, "licence": slot.licence, "reason": slot.reason,
+                     "needs_review": slot.needs_review})
     return rows
 
 def localized_inventory(lang):

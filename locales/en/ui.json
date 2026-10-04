@@ -476,6 +476,8 @@
         "missing": "Missing"
       },
       "notInSuite": "Not in the Full suite",
+      "needsReview": "Needs review",
+      "needsReviewHint": "Machine-translated: review a sample (python -m arena.i18n review) before trusting results from this slot.",
       "count": "{{available}} / {{expected}}"
     }
   },

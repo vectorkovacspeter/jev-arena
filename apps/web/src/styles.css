@@ -2781,3 +2781,6 @@ tbody tr.row-selected {
   display: block;
   margin-top: 4px;
 }
+.data-slots .slot-review {
+  color: var(--danger);
+}
