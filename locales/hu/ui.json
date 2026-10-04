@@ -1,5 +1,10 @@
 {
-  "common": { "unavailable": "Nem elérhető", "notApplicable": "N/A", "loading": "Betöltés…", "dismiss": "Bezárás" },
+  "common": {
+    "unavailable": "Nem elérhető",
+    "notApplicable": "N/A",
+    "loading": "Betöltés…",
+    "dismiss": "Bezárás"
+  },
   "shell": {
     "skipToContent": "Ugrás a tartalomra",
     "expandNavigation": "Navigáció kinyitása",
@@ -18,9 +23,49 @@
     "englishOnly": "Ez a rész csak angolul érhető el."
   },
   "nav": {
-    "arena": "Áttekintés", "results": "Eredmények", "cases": "Esetböngésző", "abcd": "Ügyfélszolgálati beszélgetések",
-    "models": "Modellkalauz", "takeaways": "Tanulságok", "sources": "Tesztek és pontozás",
-    "chart": "Pontosság és sebesség", "replay": "Munkafolyamat-visszajátszás", "run": "Új teszt futtatása", "setup": "Beállítás",
+    "arena": "Áttekintés",
+    "results": "Eredmények",
+    "cases": "Esetböngésző",
+    "abcd": "Ügyfélszolgálati beszélgetések",
+    "models": "Modellkalauz",
+    "takeaways": "Tanulságok",
+    "sources": "Tesztek és pontozás",
+    "chart": "Pontosság és sebesség",
+    "replay": "Munkafolyamat-visszajátszás",
+    "run": "Új teszt futtatása",
+    "setup": "Beállítás",
     "previousView": "előző nézet"
+  },
+  "errors": {
+    "duplicate_entrants": "Ismétlődő résztvevők",
+    "unknown_entrant": "Ismeretlen résztvevő",
+    "idempotency_conflict": "Az idempotencia-kulcsot más beállításokkal használták újra",
+    "gpu_busy_run": "Egy másik futtatás használja a GPU-t. Állítsd le, vagy várd meg, amíg befejeződik.",
+    "gpu_busy_process": "Egy másik Arena-folyamat használja a GPU-t. Várd meg, amíg a futtatása befejeződik.",
+    "setup_needed": "Beállítás szükséges: {{details}}",
+    "judge_not_ready": "{{reason}}",
+    "run_not_found": "A futtatás nem található",
+    "another_run_active": "Egy másik futtatás aktív",
+    "run_complete": "A futtatás már befejeződött",
+    "case_manifest_modified": "A rögzített esetlista módosult",
+    "runtime_changed": "A kód, a modellsúlyok vagy a futtatókörnyezet megváltozott a futtatás óta. Indíts új futtatást, hogy ne keveredjenek a mérések.",
+    "demo_needs_sources": "A Demóhoz a rögzített nyilvános JevBench-források kellenek. Előbb használd a Beállításban a „Kijelöltek előkészítése” gombot.",
+    "suite_not_prepared": "A teljes tesztcsomag nincs előkészítve: {{missing}}",
+    "duplicate_case_ids": "Ismétlődő esetazonosítók a tesztcsomagban",
+    "abcd_case_not_found": "Az ABCD-eset nem található",
+    "outcome_needs_model": "Az eredmény szerinti szűréshez válassz modellt",
+    "case_not_found": "Az eset nem található",
+    "invalid_event_cursor": "Érvénytelen eseménykurzor",
+    "choose_entrants": "Válassz regisztrált résztvevőket",
+    "preparation_running": "Az előkészítés már fut",
+    "wait_for_active_run": "A futtatókörnyezet fájljainak módosítása előtt várd meg az aktív futtatást",
+    "unknown_language": "Ismeretlen nyelv: {{language}}",
+    "report_read_only": "Ez a mentett jelentés csak olvasható. Modellek futtatásához indítsd el a Jev Arenát."
+  },
+  "readiness": {
+    "add_typesafe_key": "Add meg a TypeSafe-kulcsodat",
+    "native_pending": "A natív integráció még hiányzik",
+    "prepare_weights": "Készítsd elő a modellsúlyokat",
+    "gpu_unavailable": "A GPU-worker nem érhető el"
   }
 }

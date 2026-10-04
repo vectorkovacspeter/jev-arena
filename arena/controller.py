@@ -12,6 +12,7 @@ from arena import judge
 from arena.adapters import Adapter, IMAGE, IMAGES, IMPLEMENTED
 from arena.config import DATA, ROOT, RUNS, digest, write_json
 from arena.contracts import Case, RunRequest
+from arena.i18n.errors import ArenaError
 from arena.hardware import hardware,command
 from arena.prepare import model_info
 from arena.registry import REGISTRY, public_registry
@@ -23,6 +24,7 @@ from arena.episodes import run_episodes
 from arena.performance import measure
 from arena.audit import stratified_ids, disagreement_ids
 
+REASONS={"add_typesafe_key":"Add your TypeSafe key","native_pending":"Native integration pending","prepare_weights":"Prepare model weights","gpu_unavailable":"GPU worker unavailable"}
 TERMINAL={"complete","cancelled","failed","judging_incomplete","partial","interrupted"}
 
 def implementation_hash():
@@ -58,8 +60,9 @@ class Controller:
         for e in public_registry():
             info=model_info(e["id"])
             ready=e["id"]=="uniform" or (e["hosted"] and bool(os.environ.get("TYPESAFE_API_KEY"))) or (e["runtime"] in IMPLEMENTED and bool(info and info.get("complete")) and images.get(IMAGES.get(e["runtime"],IMAGE),False) and bool(hw["gpu"]))
-            reason=None if ready else "Add your TypeSafe key" if e["hosted"] else "Native integration pending" if e["runtime"] not in IMPLEMENTED else "Prepare model weights" if not info else "GPU worker unavailable"
-            models.append({**e,"ready":ready,"reason":reason,"prepared":bool(info),"resolved_revision":info.get("resolved_revision") if info else None})
+            reason_code=None if ready else "add_typesafe_key" if e["hosted"] else "native_pending" if e["runtime"] not in IMPLEMENTED else "prepare_weights" if not info else "gpu_unavailable"
+            reason=REASONS.get(reason_code)
+            models.append({**e,"ready":ready,"reason":reason,"reason_code":reason_code,"prepared":bool(info),"resolved_revision":info.get("resolved_revision") if info else None})
         proof=DATA/"judge-smoke"/"metadata.json"
         if proof.exists():
             meta=json.loads(proof.read_text(encoding="utf-8"));cli["smoke_passed"]=meta.get("exit_code")==0 and not meta.get("tool_events");cli["observed_model"]=meta.get("observed_model")
@@ -69,22 +72,22 @@ class Controller:
         return {"hardware":hw,"models":models,"docker_ready":docker["ok"],"judge":cli,"suites":inventory(),"setup":self.store.setting("setup",{}),"active_run":active}
 
     async def start(self,request:RunRequest):
-        if len(set(request.model_ids))!=len(request.model_ids):raise ValueError("Duplicate entrants")
-        if any(x not in REGISTRY for x in request.model_ids):raise ValueError("Unknown entrant")
+        if len(set(request.model_ids))!=len(request.model_ids):raise ArenaError("duplicate_entrants","Duplicate entrants")
+        if any(x not in REGISTRY for x in request.model_ids):raise ArenaError("unknown_entrant","Unknown entrant")
         existing=next((r for r in self.store.runs() if r["request"].get("idempotency_key")==request.idempotency_key),None)
         if existing:
-            if existing["request"]!=request.model_dump():raise ValueError("Idempotency key reused with different settings")
+            if existing["request"]!=request.model_dump():raise ArenaError("idempotency_conflict","Idempotency key reused with different settings")
             return existing["id"]
-        if any(not t.done() for t in self.tasks.values()):raise ValueError("Another run owns the GPU. Cancel or wait for it first.")
+        if any(not t.done() for t in self.tasks.values()):raise ArenaError("gpu_busy_run","Another run owns the GPU. Cancel or wait for it first.")
         probe=FileLock(DATA/'gpu.lock')
         try:probe.acquire(timeout=0)
-        except LockTimeout:raise ValueError('Another Arena process owns the GPU. Wait for its run to finish.')
+        except LockTimeout:raise ArenaError('gpu_busy_process','Another Arena process owns the GPU. Wait for its run to finish.')
         else:probe.release()
         cases=suite(request.preset)
         ready=await self.readiness();lookup={m["id"]:m for m in ready["models"]}
         missing=[lookup[m]["name"]+": "+lookup[m]["reason"] for m in request.model_ids if not lookup[m]["ready"]]
-        if missing:raise ValueError("Setup needed: "+"; ".join(missing))
-        if request.judge and not ready["judge"]["ready"]:raise ValueError(ready["judge"]["reason"])
+        if missing:raise ArenaError("setup_needed","Setup needed: "+"; ".join(missing),details="; ".join(missing))
+        if request.judge and not ready["judge"]["ready"]:raise ArenaError("judge_not_ready",ready["judge"]["reason"],reason=ready["judge"]["reason"])
         rid=time.strftime("%Y%m%d-%H%M%S")+"-"+uuid.uuid4().hex[:6]
         records=[c.model_dump() for c in cases]
         order=list(request.model_ids);random.Random(request.seed).shuffle(order)
@@ -301,13 +304,13 @@ class Controller:
 
     async def resume(self,rid):
         run=self.store.run(rid)
-        if not run:raise ValueError("Run not found")
-        if any(not t.done() for t in self.tasks.values()):raise ValueError("Another run is active")
-        if run["status"]=="complete":raise ValueError("Run already complete")
+        if not run:raise ArenaError("run_not_found","Run not found")
+        if any(not t.done() for t in self.tasks.values()):raise ArenaError("another_run_active","Another run is active")
+        if run["status"]=="complete":raise ArenaError("run_complete","Run already complete")
         # Refuse altered suite files on resume.
         cases=self.cases(rid)
-        if digest([c.model_dump() for c in cases])!=run["manifest"]["case_sha256"]:raise ValueError("Frozen case manifest was modified")
-        if run['manifest'].get('runtime_fingerprint')!=await runtime_fingerprint(run['request']['model_ids']):raise ValueError('Code, weights or runtime changed since this run. Start a new run to avoid mixing measurements.')
+        if digest([c.model_dump() for c in cases])!=run["manifest"]["case_sha256"]:raise ArenaError("case_manifest_modified","Frozen case manifest was modified")
+        if run['manifest'].get('runtime_fingerprint')!=await runtime_fingerprint(run['request']['model_ids']):raise ArenaError('runtime_changed','Code, weights or runtime changed since this run. Start a new run to avoid mixing measurements.')
         self.store.set_setting('cancel:'+rid,False)
         self.cancels[rid]=asyncio.Event();self.tasks[rid]=asyncio.create_task(self.execute(rid,cases))
 

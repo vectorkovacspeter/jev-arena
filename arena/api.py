@@ -12,6 +12,7 @@ from fastapi import FastAPI,HTTPException,Request,Query
 from fastapi.responses import FileResponse,StreamingResponse,HTMLResponse,JSONResponse
 from fastapi.staticfiles import StaticFiles
 from arena import i18n
+from arena.i18n.errors import ArenaError,ArenaHTTPError,body as error_body
 from arena.config import ROOT,RUNS,DATA
 from arena.contracts import RunRequest
 from arena.controller import Controller,TERMINAL
@@ -31,6 +32,15 @@ async def lifespan(app):
         except asyncio.TimeoutError:pass
 
 app=FastAPI(title="Jev Arena",version="0.1.0",lifespan=lifespan)
+
+@app.exception_handler(ArenaHTTPError)
+async def coded_http_error(request:Request,e:ArenaHTTPError):
+    return JSONResponse(error_body(e.detail,e.code,e.params),status_code=e.status_code)
+
+def coded(status:int,e:ValueError):
+    # Preserve existing status codes; attach the code when the domain error has one.
+    if isinstance(e,ArenaError):return ArenaHTTPError(status,e.code,str(e),**e.params)
+    return HTTPException(status,str(e))
 
 @app.middleware("http")
 async def local_boundary(request:Request,call_next):
@@ -57,7 +67,7 @@ async def i18n_state():return {"language":i18n.get_language(),"locales":i18n.ava
 async def i18n_set(request:Request):
     body=await request.json()
     try:i18n.set_language(str(body.get("language","")))
-    except ValueError as e:raise HTTPException(400,str(e))
+    except ValueError as e:raise ArenaHTTPError(400,"unknown_language",str(e),language=str(body.get("language","")))
     return await i18n_state()
 
 @app.get("/api/readiness")
@@ -79,16 +89,16 @@ async def abcd_case(case_id:str):
     from arena.abcd_explorer import case_detail
     try:return await asyncio.to_thread(case_detail,case_id)
     except FileNotFoundError as e:raise HTTPException(404,str(e))
-    except KeyError:raise HTTPException(404,"ABCD case not found")
+    except KeyError:raise ArenaHTTPError(404,"abcd_case_not_found","ABCD case not found")
 
 @app.post("/api/runs")
 async def start(req:RunRequest):
     try:return {"id":await controller.start(req)}
-    except ValueError as e:raise HTTPException(409,str(e))
+    except ValueError as e:raise coded(409,e)
 
 def require_run(rid):
     run=controller.store.run(rid)
-    if not run:raise HTTPException(404,"Run not found")
+    if not run:raise ArenaHTTPError(404,"run_not_found","Run not found")
     return run
 
 @app.get("/api/runs/{rid}")
@@ -106,7 +116,7 @@ async def cases(rid:str,model:str|None=None,pack:str|None=None,family:str|None=N
                 search:str="",outcome:str=Query("",pattern="^(|correct|wrong|failed|unsupported)$"),
                 offset:int=Query(0,ge=0),limit:int=Query(30,ge=1,le=200),index_only:bool=False):
     require_run(rid)
-    if outcome and not model:raise HTTPException(422,"Choose a model to filter by outcome")
+    if outcome and not model:raise ArenaHTTPError(422,"outcome_needs_model","Choose a model to filter by outcome")
     from arena.explorer import case_page
     return await asyncio.to_thread(case_page,RUNS/rid,controller.store,rid,model=model,pack=pack,
         family=family,kind=kind,search=search,outcome=outcome,offset=offset,limit=limit,index_only=index_only)
@@ -117,7 +127,7 @@ async def case_detail(rid:str,case_id:str,model:str|None=None):
     from arena.explorer import saved_cases
     def detail():
         case=next((c for c in saved_cases(RUNS/rid) if c["id"]==case_id),None)
-        if case is None:raise HTTPException(404,"Case not found")
+        if case is None:raise ArenaHTTPError(404,"case_not_found","Case not found")
         return {"case":case,"predictions":controller.store.predictions_for_cases(rid,[case_id],model)}
     return await asyncio.to_thread(detail)
 
@@ -131,7 +141,7 @@ async def run_analysis(rid:str):
 async def events(rid:str,request:Request,after:int=0):
     require_run(rid)
     try:after=max(after,int(request.headers.get("last-event-id","0")))
-    except ValueError:raise HTTPException(400,"Invalid event cursor")
+    except ValueError:raise ArenaHTTPError(400,"invalid_event_cursor","Invalid event cursor")
     async def stream():
         cursor=after
         while not await request.is_disconnected():
@@ -156,14 +166,14 @@ async def cancel(rid:str):require_run(rid);controller.cancel(rid);return {"ok":T
 @app.post("/api/runs/{rid}/resume")
 async def resume(rid:str):
     try:await controller.resume(rid);return {"ok":True}
-    except ValueError as e:raise HTTPException(409,str(e))
+    except ValueError as e:raise coded(409,e)
 
 @app.post("/api/setup/prepare")
 async def prepare(request:Request):
     data=await request.json();models=data.get("model_ids",[])
-    if not isinstance(models,list) or not models or any(m not in REGISTRY for m in models):raise HTTPException(400,"Choose registered entrants")
-    if controller.setup_task and not controller.setup_task.done():raise HTTPException(409,"Preparation already running")
-    if any(r['status'] not in TERMINAL for r in controller.store.runs()):raise HTTPException(409,"Wait for the active run before changing runtime files")
+    if not isinstance(models,list) or not models or any(m not in REGISTRY for m in models):raise ArenaHTTPError(400,"choose_entrants","Choose registered entrants")
+    if controller.setup_task and not controller.setup_task.done():raise ArenaHTTPError(409,"preparation_running","Preparation already running")
+    if any(r['status'] not in TERMINAL for r in controller.store.runs()):raise ArenaHTTPError(409,"wait_for_active_run","Wait for the active run before changing runtime files")
     async def work():
         def progress(message):controller.store.set_setting("setup",{"status":"preparing","message":message,"updated":time.time()})
         try:

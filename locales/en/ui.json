@@ -1,5 +1,10 @@
 {
-  "common": { "unavailable": "Unavailable", "notApplicable": "N/A", "loading": "Loading…", "dismiss": "Dismiss" },
+  "common": {
+    "unavailable": "Unavailable",
+    "notApplicable": "N/A",
+    "loading": "Loading…",
+    "dismiss": "Dismiss"
+  },
   "shell": {
     "skipToContent": "Skip to content",
     "expandNavigation": "Expand navigation",
@@ -18,9 +23,49 @@
     "englishOnly": "This section is available in English only."
   },
   "nav": {
-    "arena": "Overview", "results": "Results", "cases": "Case explorer", "abcd": "Support conversations",
-    "models": "Model guide", "takeaways": "What we learned", "sources": "Tests & scoring",
-    "chart": "Accuracy and speed", "replay": "Workflow replays", "run": "Run a new test", "setup": "Setup",
+    "arena": "Overview",
+    "results": "Results",
+    "cases": "Case explorer",
+    "abcd": "Support conversations",
+    "models": "Model guide",
+    "takeaways": "What we learned",
+    "sources": "Tests & scoring",
+    "chart": "Accuracy and speed",
+    "replay": "Workflow replays",
+    "run": "Run a new test",
+    "setup": "Setup",
     "previousView": "previous view"
+  },
+  "errors": {
+    "duplicate_entrants": "Duplicate entrants",
+    "unknown_entrant": "Unknown entrant",
+    "idempotency_conflict": "Idempotency key reused with different settings",
+    "gpu_busy_run": "Another run owns the GPU. Cancel or wait for it first.",
+    "gpu_busy_process": "Another Arena process owns the GPU. Wait for its run to finish.",
+    "setup_needed": "Setup needed: {{details}}",
+    "judge_not_ready": "{{reason}}",
+    "run_not_found": "Run not found",
+    "another_run_active": "Another run is active",
+    "run_complete": "Run already complete",
+    "case_manifest_modified": "Frozen case manifest was modified",
+    "runtime_changed": "Code, weights or runtime changed since this run. Start a new run to avoid mixing measurements.",
+    "demo_needs_sources": "Demo needs the pinned public JevBench sources. Use Prepare selected in Setup first.",
+    "suite_not_prepared": "Full suite is not prepared: {{missing}}",
+    "duplicate_case_ids": "Duplicate case IDs in suite",
+    "abcd_case_not_found": "ABCD case not found",
+    "outcome_needs_model": "Choose a model to filter by outcome",
+    "case_not_found": "Case not found",
+    "invalid_event_cursor": "Invalid event cursor",
+    "choose_entrants": "Choose registered entrants",
+    "preparation_running": "Preparation already running",
+    "wait_for_active_run": "Wait for the active run before changing runtime files",
+    "unknown_language": "Unknown language: {{language}}",
+    "report_read_only": "This saved report is read-only. Launch Jev Arena to run models."
+  },
+  "readiness": {
+    "add_typesafe_key": "Add your TypeSafe key",
+    "native_pending": "Native integration pending",
+    "prepare_weights": "Prepare model weights",
+    "gpu_unavailable": "GPU worker unavailable"
   }
 }

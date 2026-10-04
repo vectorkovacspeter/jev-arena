@@ -4,6 +4,7 @@ from collections import Counter
 from arena.config import DATASETS, SOURCES, digest, write_json
 from arena.contracts import Case, Question
 from arena.fresh import fresh, smoke, robustness
+from arena.i18n.errors import ArenaError
 
 EXPECTED = {"JevBench public":231,"Typed decisions":2000,"Classification":1500,"Multilingual":1000,"RAG relevance":500,"Arena Fresh":1440,"Robustness":1000}
 
@@ -31,14 +32,14 @@ def suite(preset):
     if preset=="smoke": cases=smoke()
     elif preset=="demo":
         pool=jevbench()
-        if len(pool)<84:raise ValueError('Demo needs the pinned public JevBench sources. Use Prepare selected in Setup first.')
+        if len(pool)<84:raise ArenaError('demo_needs_sources','Demo needs the pinned public JevBench sources. Use Prepare selected in Setup first.')
         cases=smoke()+pool[:84]
     else:
         cases=jevbench()+imported()+fresh()+robustness()
         counts=Counter(c.pack for c in cases)
         missing={k:{"expected":v,"available":counts.get(k,0)} for k,v in EXPECTED.items() if counts.get(k,0)!=v}
-        if missing: raise ValueError("Full suite is not prepared: "+json.dumps(missing))
-    if len({c.id for c in cases})!=len(cases): raise ValueError("Duplicate case IDs in suite")
+        if missing: raise ArenaError("suite_not_prepared","Full suite is not prepared: "+json.dumps(missing),missing=json.dumps(missing))
+    if len({c.id for c in cases})!=len(cases): raise ArenaError("duplicate_case_ids","Duplicate case IDs in suite")
     return cases
 
 def inventory():
