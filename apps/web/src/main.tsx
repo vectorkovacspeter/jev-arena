@@ -44,7 +44,8 @@ import type {
   LocaleInfo,
 } from "./types";
 import type { TFunction } from "i18next";
-import { initI18n, setLanguage, useTranslation, bundledLocales } from "./i18n";
+import { initI18n, setLanguage, useTranslation, useFormat, bundledLocales } from "./i18n";
+import { Trans } from "react-i18next";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 
 
@@ -180,8 +181,12 @@ const typicalTime = (result: Result | null, id: string) => {
 };
 function App() {
   const { t, i18n } = useTranslation();
+  const fmt = useFormat();
   const tRef = useRef(t);
   tRef.current = t;
+  const statusLabel = (s: string) => (s ? t(`status.${s}`, { defaultValue: label(s) }) : "");
+  const presetLabel = (p: string) =>
+    ({ smoke: t("common.presets.smoke"), demo: t("common.presets.demo"), full: t("common.presets.full") })[p] ?? label(p);
   const [locales, setLocales] = useState<LocaleInfo[]>([]);
   const { page, navigate: setPage, back, canGoBack, backLabel } = useNavigation();
   const [resultsAssessment, setResultsAssessment] = useViewState("resultsAssessment", "arena");
@@ -415,6 +420,21 @@ function App() {
     );
   }
 
+  const presetCount = (p: string) => (p === "full" ? 7671 : p === "demo" ? 120 : 36);
+  const heading: Record<string, [string, string]> = {
+    models: [t("overview.heading.models"), t("overview.lead.models")],
+    takeaways: [t("overview.heading.takeaways"), t("overview.lead.takeaways")],
+    sources: [t("overview.heading.sources"), t("overview.lead.sources")],
+    abcd: [t("overview.heading.abcd"), t("overview.lead.abcd")],
+    run: [t("overview.heading.run"), t("overview.lead.run")],
+    chart: [t("overview.heading.chart"), t("overview.lead.chart")],
+    arena: [t("overview.heading.arena"), t("overview.lead.arena")],
+    results: [t("overview.heading.results"), t("overview.lead.results")],
+    cases: [t("overview.heading.cases"), t("overview.lead.cases")],
+    replay: [t("overview.heading.replay"), t("overview.lead.replay")],
+  };
+  const [pageTitle, pageLead] = heading[page] ?? [t("overview.heading.setup"), t("overview.lead.setup")];
+
   return (
     <>
       <AppShell
@@ -453,13 +473,12 @@ function App() {
         onPresenterChange={setPresent}
         status={offline ? t("overview.savedReport") : ready?.hardware.gpu?.name.replace("NVIDIA GeForce ", "") || t("shell.localWorkspace")}
         sidebarFooter={<><p>{t("overview.sidebarTagline")}</p><button className="text-button" onClick={()=>setPage("sources")}>{t("overview.allSources")}</button></>}
-        footerNote={showingAbcd ? t("overview.footerAbcd") : result ? `${result.run_id} · ${label(current?.status || "")}` : t("overview.footerNone")}
+        footerNote={showingAbcd ? t("overview.footerAbcd") : result ? `${result.run_id} · ${statusLabel(current?.status || "")}` : t("overview.footerNone")}
         className={`page-${page}`}
       >
           {offline && (
             <div className="setup-progress">
-              <ShieldCheck size={17} /> Saved report · read-only · all charts
-              and replays use the exported measurements.
+              <ShieldCheck size={17} /> {t("overview.offlineBanner")}
             </div>
           )}
 
@@ -467,61 +486,42 @@ function App() {
             <div className="alert" role="alert">
               <TriangleAlert size={17} />
               <span>{error}</span>
-              <button onClick={() => setError("")} aria-label="Dismiss error">
+              <button onClick={() => setError("")} aria-label={t("common.dismissError")}>
                 <X size={16} />
               </button>
             </div>
           )}
 
-          {canGoBack ? <button className="text-button page-back" onClick={back}>← Back to {backLabel}</button> : page === "cases" ? <button className="text-button page-back" onClick={()=>setPage("results")}>← Back to Results</button> : null}
+          {canGoBack ? <button className="text-button page-back" onClick={back}>{t("common.backTo", { target: backLabel })}</button> : page === "cases" ? <button className="text-button page-back" onClick={()=>setPage("results")}>{t("common.backTo", { target: t("nav.results") })}</button> : null}
           <div className="page-heading">
             <div>
               <div className="eyebrow">
                 <span className="status-dot" />
                 {active
-                  ? "EVALUATION IN PROGRESS"
+                  ? t("overview.eyebrowInProgress")
                   : completed
-                    ? "MEASURED RESULTS"
-                    : "DECISION MODEL LAB"}
+                    ? t("overview.eyebrowMeasured")
+                    : t("overview.eyebrowLab")}
               </div>
-              <h1>
-                {page === "models" ? "Meet the models." : page === "takeaways" ? "What we learned." : page === "sources" ? "Tests & scoring." : page === "abcd" ? "Support conversations." : page === "run" ? "Run a new test." : page === "chart" ? "Accuracy and speed." : page === "arena"
-                  ? "Measured results."
-                  : page === "results"
-                    ? "Results, in detail."
-                    : page === "cases"
-                      ? "Every decision."
-                      : page === "replay"
-                        ? "Run it back."
-                        : "Ready your arena."}
-              </h1>
-              <p>
-                {page === "models" ? "What each model is, what it needs, and where it fits." : page === "takeaways" ? "Practical lessons for software, automation and real-time decisions." : page === "sources" ? "Where the questions and answers come from." : page === "abcd" ? "A separate five-model assessment of support decisions with longer inputs." : page === "run" ? "New tests are saved separately. Existing results remain available." : page === "chart" ? "Higher is more accurate. Left is faster. Click a point to inspect it." : page === "arena"
-                  ? "One headline comparison: the same answer-key questions for every model."
-                  : page === "results"
-                    ? "Explore results by assessment, question type and model."
-                    : page === "cases"
-                      ? "Trace a score back to its evidence, answer and reference."
-                      : page === "replay"
-                        ? "Two small workflow demonstrations, with saved scenarios and outcomes. Playback makes no model calls."
-                        : "Prepare models, verify the judge and freeze the evaluation suite."}
-              </p>
+              <h1>{pageTitle}</h1>
+              <p>{pageLead}</p>
             </div>
             <div className="heading-actions">
               {runs.length > 0 && !showingAbcd && (
                 <select
-                  aria-label="Select saved run"
+                  aria-label={t("overview.selectSavedRun")}
                   value={rid || ""}
                   onChange={(e) => setRid(e.target.value)}
                 >
                   {runs.map((r) => (
                     <option value={r.id} key={r.id}>
-                      {new Date(r.created * 1000).toLocaleDateString(
-                        undefined,
-                        { month: "short", day: "numeric" },
-                      )}{" "}
-                      · {r.request.preset} · {r.request.model_ids.length} models
-                      · {r.id.slice(-6)} · {label(r.status)}
+                      {t("overview.runOption", {
+                        date: fmt.shortDate(r.created),
+                        preset: r.request.preset,
+                        count: r.request.model_ids.length,
+                        id: r.id.slice(-6),
+                        status: statusLabel(r.status),
+                      })}
                     </option>
                   ))}
                 </select>
@@ -531,7 +531,7 @@ function App() {
                   className="button secondary compact"
                   href={`/api/runs/${rid}/export`}
                 >
-                  <ArrowDownToLine size={16} /> Export
+                  <ArrowDownToLine size={16} /> {t("overview.export")}
                 </a>
               )}
               {(page === "run" || page === "setup") && (<button
@@ -539,41 +539,46 @@ function App() {
                 disabled={!!offline}
                 onClick={() => setDrawer(true)}
               >
-                <SlidersHorizontal size={16} /> New test settings
+                <SlidersHorizontal size={16} /> {t("overview.newTestSettings")}
               </button>)}
 
             </div>
           </div>
 
           {result?.run_id === "20260927-205440-6350b9" && (page === "arena" || (page === "results" && !showingAbcd)) && (
-            <details className="explain"><summary>How to read the headline: 4,635 identical questions per model</summary>
-              <p>Answer accuracy counts selected answers that match the answer key. It ignores probability-format checks, which remain in the detailed results. This presents the existing shared-question comparison; it does not change saved scoring.</p>
-              <p>We exclude 1,000 questions with more options than some models accept, plus 36 inputs exceeding a tested context setting. The same exclusions apply to every model. These 4,635 questions are a restricted comparison, not all 7,671 cases.</p>
-              <p>Winnow accepts up to 64 choices. Arena mistakenly sent 500 banking questions with 77 choices. Those requests are outside this shared score. They remain in the original attempt log, not treated as reasoning errors here. The old 84.87% is a different, all-attempt strict score.</p>
+            <details className="explain"><summary>{t("overview.headlineExplain.summary")}</summary>
+              <p>{t("overview.headlineExplain.scoring")}</p>
+              <p>{t("overview.headlineExplain.exclusions")}</p>
+              <p>{t("overview.headlineExplain.winnow")}</p>
             </details>
           )}
           {page === "models" && <ModelGuide selected={focus} onSelect={setFocus}/>}
-          {page === "takeaways" && <><Takeaways onModels={()=>setPage("models")} onAbcd={()=>setPage("abcd")} onAnalysis={openAnalysis}/><TaskBreakdown/><p className="small muted">This findings page describes completed v2 (27 September) and ABCD (28 September), regardless of the saved run selected above. Results by question type uses the selected run.</p></>}
+          {page === "takeaways" && <><Takeaways onModels={()=>setPage("models")} onAbcd={()=>setPage("abcd")} onAnalysis={openAnalysis}/><TaskBreakdown/><p className="small muted">{t("overview.takeawaysNote")}</p></>}
           {page === "sources" && <SourcesGuide/>}
-          {page === "abcd" && <><button className="text-button" onClick={openAbcdCases}>Inspect ABCD cases →</button><ABCDResults/></>}
-          {page === "chart" && <section className="frontier-panel chart-large"><button className="text-button" onClick={()=>setPage("arena")}>← Back to overview</button><Frontier rows={metricRows} result={result} focus={focus} onFocus={setFocus}/><p className="small muted">Answer accuracy on shared questions. Typical time is the middle of three repeated timing-block medians; CLM supports only 172 of 200 timing inputs. Hosted timing includes network travel. One request at a time.</p></section>}
+          {page === "abcd" && <><button className="text-button" onClick={openAbcdCases}>{t("overview.inspectAbcdCases")}</button><ABCDResults/></>}
+          {page === "chart" && <section className="frontier-panel chart-large"><button className="text-button" onClick={()=>setPage("arena")}>{t("overview.backToOverview")}</button><Frontier rows={metricRows} result={result} focus={focus} onFocus={setFocus}/><p className="small muted">{t("overview.chartNote")}</p></section>}
 
           {page === "arena" && (
             <>
               <div className="workspace-bar">
                 <div className="workspace-tabs">
-                  <button className="selected">Overview</button>
+                  <button className="selected">{t("nav.arena")}</button>
                   <button onClick={() => setPage("results")}>
-                    Quality & confidence
+                    {t("overview.tabQuality")}
                   </button>
                   <button onClick={() => setPage("replay")}>
-                    Replay <ArrowUpRight size={12} />
+                    {t("overview.tabReplay")} <ArrowUpRight size={12} />
                   </button>
                 </div>
                 <span className="scope-label">
                   {result
-                    ? `${result.preset.toUpperCase()} · ${String(current?.manifest.version || "arena-v1").replace("arena-", "").toUpperCase()} · ${num(result.case_count)} CASES`
-                    : "FULL ARENA · 7,671 CASES"}
+                    ? t("overview.scope", {
+                        preset: result.preset.toUpperCase(),
+                        version: String(current?.manifest.version || "arena-v1").replace("arena-", "").toUpperCase(),
+                        count: result.case_count,
+                        n: fmt.number(result.case_count),
+                      })
+                    : t("overview.scopeDefault", { n: fmt.number(7671) })}
                 </span>
               </div>
 
@@ -581,38 +586,38 @@ function App() {
                 <div className="main-column">
                   <div className="metrics-strip">
                     <Metric
-                      name="Decisions evaluated"
-                      value={num(completed)}
-                      detail={`of ${num(planned)} planned`}
+                      name={t("overview.metric.decisions")}
+                      value={fmt.number(completed)}
+                      detail={t("overview.metric.decisionsDetail", { n: fmt.number(planned) })}
                       large
                     />
                     <Metric
-                      name="Best answer accuracy"
-                      value={best ? pct(answerScore(best),2) : "—"}
+                      name={t("overview.metric.bestAccuracy")}
+                      value={best ? fmt.percent(answerScore(best),2) : "—"}
                       detail={
                         best
-                          ? `${best.name} · shared questions`
-                          : "Awaiting measured results"
+                          ? t("overview.metric.bestAccuracyDetail", { name: best.name })
+                          : t("overview.metric.awaitingResults")
                       }
                     />
                     <Metric
-                      name="Models in comparison"
+                      name={t("overview.metric.models")}
                       value={String(
                         result?.entrants.length || selected.length,
                       ).padStart(2, "0")}
                       detail={
                         result
-                          ? "Same frozen case manifest"
-                          : "Main roster + optional controls"
+                          ? t("overview.metric.modelsSameManifest")
+                          : t("overview.metric.modelsRoster")
                       }
                     />
                     <Metric
-                      name="Main score"
-                      value="Answer key"
+                      name={t("overview.metric.mainScore")}
+                      value={t("overview.metric.answerKey")}
                       detail={
                         (current ? current.request.judge : judge)
-                          ? "Astra separately spot-checks a sample"
-                          : "Scored against saved answers"
+                          ? t("overview.metric.judgeSpotChecks")
+                          : t("overview.metric.scoredAgainstAnswers")
                       }
                       text
                     />
@@ -621,17 +626,15 @@ function App() {
                   <section className="frontier-panel">
                     <div className="section-title">
                       <div>
-                        <h2>Accuracy and speed</h2>
-                        <p>
-                          Higher is more accurate. Left is faster. Same shared-question score as the table.
-                        </p>
+                        <h2>{t("overview.chartTitle")}</h2>
+                        <p>{t("overview.chartLead")}</p>
                       </div>
                       <span className={`tag ${completed ? "measured" : ""}`}>
                         {completed
                           ? active
-                            ? "LIVE MEASUREMENTS"
-                            : "MEASURED"
-                          : "AWAITING RUN"}
+                            ? t("overview.tagLive")
+                            : t("overview.tagMeasured")
+                          : t("overview.tagAwaiting")}
                       </span>
                     </div>
                     <Frontier
@@ -642,13 +645,11 @@ function App() {
                     />
                     <div className="chart-foot">
                       <span>
-                        <span className="tiny-square" /> Selected entrant
+                        <span className="tiny-square" /> {t("overview.selectedEntrant")}
                       </span>
-                      <span>
-                        Repeated short-input timing · serial requests · network included for Jev
-                      </span>
+                      <span>{t("overview.timingNote")}</span>
                       <button onClick={() => setPage("chart")}>
-                        Enlarge chart <ArrowRight size={13} />
+                        {t("overview.enlargeChart")} <ArrowRight size={13} />
                       </button>
                     </div>
                   </section>
@@ -657,7 +658,7 @@ function App() {
                     <div className="section-title">
                       <div>
                         <h2>
-                          Entrant comparison{" "}
+                          {t("overview.entrantComparison")}{" "}
                           <span className="count">
                             {result?.entrants.length || selected.length}
                           </span>
@@ -668,16 +669,16 @@ function App() {
                         disabled={!!offline}
                         onClick={() => setDrawer(true)}
                       >
-                        Manage entrants <SlidersHorizontal size={13} />
+                        {t("overview.manageEntrants")} <SlidersHorizontal size={13} />
                       </button>
                     </div>
-                    <p className="small muted score-note">One score: selected-answer accuracy on the same {num(metricRows[0]?.matched?.verified_count)} reference questions. Output checks and full attempt logs are in Results. Click a model for its profile.</p>
-                    <div className="table-scroll"><table><thead><tr><th>MODEL</th><th>ANSWER ACCURACY</th><th>TYPICAL RESPONSE</th><th>OUTPUTS PASSING CHECKS</th></tr></thead><tbody>
+                    <p className="small muted score-note">{t("overview.scoreNote", { n: fmt.number(metricRows[0]?.matched?.verified_count) })}</p>
+                    <div className="table-scroll"><table><thead><tr><th>{t("overview.table.model")}</th><th>{t("overview.table.answerAccuracy")}</th><th>{t("overview.table.typicalResponse")}</th><th>{t("overview.table.outputsPassing")}</th></tr></thead><tbody>
                     {[...metricRows].sort((a,b)=>(answerScore(b)??-1)-(answerScore(a)??-1)).map(e=><tr key={e.id}>
                     <td><button className="model-link" onClick={()=>{setFocus(e.id);setPage("models")}}>{e.name} <ChevronRight size={14}/></button></td>
-                    <td className="tabular bright">{pct(answerScore(e),2)}<small className="table-note">{num(e.matched?.selected_label_correct)} / {num(e.matched?.verified_count)} answers</small></td>
-                    <td className="tabular">{ms(typicalTime(result,e.id))}</td>
-                    <td>{pct(e.metrics.coverage, 2)}<small className="table-note">{num(e.metrics.valid)} / {num(e.metrics.planned)} planned · not accuracy</small></td>
+                    <td className="tabular bright">{fmt.percent(answerScore(e),2)}<small className="table-note">{t("overview.table.answersCorrect", { correct: fmt.number(e.matched?.selected_label_correct), total: fmt.number(e.matched?.verified_count) })}</small></td>
+                    <td className="tabular">{fmt.duration(typicalTime(result,e.id))}</td>
+                    <td>{fmt.percent(e.metrics.coverage, 2)}<small className="table-note">{t("overview.table.validPlanned", { valid: fmt.number(e.metrics.valid), planned: fmt.number(e.metrics.planned) })}</small></td>
                     </tr>)}</tbody></table></div>
 
                   </section>
@@ -691,35 +692,31 @@ function App() {
                 <div>
                   <ShieldCheck size={19} />
                   <span>
-                    Evidence first
-                    <strong>
-                      Every result has a saved input, output and manifest.
-                    </strong>
+                    {t("overview.method.evidenceTitle")}
+                    <strong>{t("overview.method.evidenceDetail")}</strong>
                   </span>
                 </div>
                 <div>
                   <Layers3 size={19} />
                   <span>
-                    One model at a time
-                    <strong>
-                      Sequential GPU runs. Explicit capability limits.
-                    </strong>
+                    {t("overview.method.sequentialTitle")}
+                    <strong>{t("overview.method.sequentialDetail")}</strong>
                   </span>
                 </div>
-                <button className="text-button" onClick={()=>setPage("sources")}>All benchmark sources <ExternalLink size={13}/></button>
+                <button className="text-button" onClick={()=>setPage("sources")}>{t("overview.allSourcesLink")} <ExternalLink size={13}/></button>
               </div>
             </>
           )}
 
           {page === "results" && (
-            <><div className="quick-types assessment-tabs" role="group" aria-label="Results assessment">
-              <button aria-pressed={resultsAssessment === "arena"} className={resultsAssessment === "arena" ? "selected" : ""} onClick={()=>setResultsAssessment("arena")}>Arena · selected saved run</button>
-              <button aria-pressed={resultsAssessment === "abcd"} className={resultsAssessment === "abcd" ? "selected" : ""} onClick={()=>setResultsAssessment("abcd")}>ABCD · support conversations</button>
-            </div>{resultsAssessment === "abcd" ? <><button className="text-button" onClick={openAbcdCases}>Inspect ABCD cases →</button><ABCDResults/></> : <>{result && <TaskAnalysis key={result.run_id} result={result} onCases={openCases}/>}<details className="whole-run-details"><summary>Whole-run model diagnostics: confidence, output checks and workflows</summary><Results result={result} focus={focus} onFocus={setFocus} onProfile={(id)=>{setFocus(id);setPage("models")}} /></details></>}</>
+            <><div className="quick-types assessment-tabs" role="group" aria-label={t("overview.resultsAssessment")}>
+              <button aria-pressed={resultsAssessment === "arena"} className={resultsAssessment === "arena" ? "selected" : ""} onClick={()=>setResultsAssessment("arena")}>{t("overview.assessmentArenaRun")}</button>
+              <button aria-pressed={resultsAssessment === "abcd"} className={resultsAssessment === "abcd" ? "selected" : ""} onClick={()=>setResultsAssessment("abcd")}>{t("overview.assessmentAbcd")}</button>
+            </div>{resultsAssessment === "abcd" ? <><button className="text-button" onClick={openAbcdCases}>{t("overview.inspectAbcdCases")}</button><ABCDResults/></> : <>{result && <TaskAnalysis key={result.run_id} result={result} onCases={openCases}/>}<details className="whole-run-details"><summary>{t("overview.wholeRunDiagnostics")}</summary><Results result={result} focus={focus} onFocus={setFocus} onProfile={(id)=>{setFocus(id);setPage("models")}} /></details></>}</>
           )}
 
           {page === "cases" && (
-            <><label className="case-dataset">Assessment<select value={caseDataset} onChange={e=>setCaseDataset(e.target.value)}><option value="arena">Arena · selected saved benchmark</option><option value="abcd">ABCD · support conversations</option></select></label>{caseDataset==="abcd"?<ABCDCases offline={!!offline}/>:<EvidenceExplorer rid={rid} result={result} />}</>
+            <><label className="case-dataset">{t("overview.assessment")}<select value={caseDataset} onChange={e=>setCaseDataset(e.target.value)}><option value="arena">{t("overview.assessmentArenaBenchmark")}</option><option value="abcd">{t("overview.assessmentAbcd")}</option></select></label>{caseDataset==="abcd"?<ABCDCases offline={!!offline}/>:<EvidenceExplorer rid={rid} result={result} />}</>
           )}
 
           {page === "replay" &&
@@ -731,11 +728,11 @@ function App() {
 
           {page === "run" && (<aside className="run-panel">
                   <div className="run-panel-top">
-                    <span className="eyebrow">RUN CONTROL</span>
+                    <span className="eyebrow">{t("overview.run.control")}</span>
                     <span className="run-number">
                       {current
                         ? "#" + current.id.slice(-6).toUpperCase()
-                        : "# NEW RUN"}
+                        : t("overview.run.newRunNumber")}
                     </span>
                   </div>
                   <div className="run-orbit">
@@ -771,24 +768,22 @@ function App() {
                       )}
                       <strong>
                         {active
-                          ? `${Math.round((completed / Math.max(planned, 1)) * 100)}%`
+                          ? fmt.percent(completed / Math.max(planned, 1), 0)
                           : current?.status === "complete"
-                            ? "Complete"
-                            : "New test"}
+                            ? statusLabel("complete")
+                            : t("overview.run.newTest")}
                       </strong>
-                      <span>{active ? label(stage) : "SAVED RUN STATUS"}</span>
+                      <span>{active ? statusLabel(stage) : t("overview.run.savedRunStatus")}</span>
                     </div>
                   </div>
-                  <p className="run-description">
-                    A new Full test can take hours and use paid API calls. It creates a separate saved run. Previous results remain available in the run selector.
-                  </p>
+                  <p className="run-description">{t("overview.run.description")}</p>
 
                   {active ? (
                     <button
                       className="button stop"
                       onClick={() => mutate(`/runs/${rid}/cancel`)}
                     >
-                      <Square size={15} /> Stop run
+                      <Square size={15} /> {t("overview.run.stop")}
                     </button>
                   ) : (
                     <button
@@ -801,7 +796,7 @@ function App() {
                       ) : (
                         <Zap size={18} />
                       )}{" "}
-                      Configure new test <ArrowRight size={18} />
+                      {t("overview.run.configure")} <ArrowRight size={18} />
                     </button>
                   )}
 
@@ -811,18 +806,13 @@ function App() {
                     onClick={() => setDrawer(true)}
                   >
                     <span>
-                      {!active && !offline ? "Next: " : ""}
-                      {label(displayPreset)} suite
+                      {!active && !offline
+                        ? t("overview.run.nextSuite", { preset: presetLabel(displayPreset) })
+                        : t("overview.run.suite", { preset: presetLabel(displayPreset) })}
                     </span>
                     <span>
-                      {num(
-                        displayPreset === "full"
-                          ? 7671
-                          : displayPreset === "demo"
-                            ? 120
-                            : 36,
-                      )}{" "}
-                      cases <ChevronDown size={12} />
+                      {t("overview.run.cases", { count: presetCount(displayPreset), n: fmt.number(presetCount(displayPreset)) })}{" "}
+                      <ChevronDown size={12} />
                     </span>
                   </button>
 
@@ -835,7 +825,7 @@ function App() {
                       }}
                     >
                       <TriangleAlert size={14} />
-                      <span>{blocked.length} selected entrants need setup</span>
+                      <span>{t("overview.run.entrantsNeedSetup", { count: blocked.length })}</span>
                       <ArrowUpRight size={13} />
                     </button>
                   )}
@@ -856,7 +846,7 @@ function App() {
                               String(i + 1).padStart(2, "0")
                             )}
                           </span>
-                          <b>{label(s)}</b>
+                          <b>{statusLabel(s)}</b>
                           {stage === s && active && (
                             <span className="stage-live" />
                           )}
@@ -872,24 +862,24 @@ function App() {
                         {ready?.hardware.gpu?.name.replace(
                           "NVIDIA GeForce ",
                           "",
-                        ) || "GPU not detected"}
+                        ) || t("overview.run.gpuNotDetected")}
                       </strong>
                       <span>
-                        {num(
-                          (ready?.hardware.gpu?.memory_total_mb || 0) / 1024,
-                          1,
-                        )}{" "}
-                        GB VRAM · {num(ready?.hardware.gpu?.temperature_c)}°C
+                        {t("overview.run.gpuMemory", {
+                          gb: fmt.number((ready?.hardware.gpu?.memory_total_mb || 0) / 1024, 1),
+                          temp: fmt.number(ready?.hardware.gpu?.temperature_c),
+                        })}
                       </span>
                     </div>
                     <span className="status-dot" />
                   </div>
                   {liveModel && active && (
                     <div className="currently">
-                      Now running{" "}
-                      <strong>
-                        {models.find((m) => m.id === liveModel)?.name}
-                      </strong>
+                      <Trans
+                        i18nKey="overview.run.nowRunning"
+                        values={{ name: models.find((m) => m.id === liveModel)?.name }}
+                        components={{ b: <strong /> }}
+                      />
                     </div>
                   )}
 
@@ -901,7 +891,7 @@ function App() {
                           className="text-button"
                           onClick={() => mutate(`/runs/${rid}/resume`)}
                         >
-                          Resume saved run <RotateCcw size={13} />
+                          {t("overview.run.resume")} <RotateCcw size={13} />
                         </button>
                       )}
                     </div>
@@ -935,36 +925,36 @@ function App() {
             className="drawer"
             role="dialog"
             aria-modal="true"
-            aria-label="Configure evaluation"
+            aria-label={t("overview.drawer.label")}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="drawer-title">
               <div>
-                <span className="eyebrow">NEXT EVALUATION</span>
-                <h2>Configure your run.</h2>
+                <span className="eyebrow">{t("overview.drawer.eyebrow")}</span>
+                <h2>{t("overview.drawer.title")}</h2>
               </div>
               <button
                 className="icon-btn"
                 onClick={() => setDrawer(false)}
-                aria-label="Close configuration"
+                aria-label={t("overview.drawer.close")}
               >
                 <X />
               </button>
             </div>
-            <label className="field-label">Evaluation suite</label>
+            <label className="field-label">{t("overview.drawer.suite")}</label>
             <div className="preset-options">
               {[
-                ["smoke", "36", "Verify the setup"],
-                ["demo", "120", "A short live comparison"],
-                ["full", "7,671", "The current frozen Arena suite"],
-              ].map(([p, n, desc]) => (
+                ["smoke", t("overview.drawer.smokeDescription")],
+                ["demo", t("overview.drawer.demoDescription")],
+                ["full", t("overview.drawer.fullDescription")],
+              ].map(([p, desc]) => (
                 <button
                   className={preset === p ? "selected" : ""}
                   key={p}
                   onClick={() => setPreset(p)}
                 >
                   <span>
-                    {label(p)} <b>{n}</b>
+                    {presetLabel(p)} <b>{fmt.number(presetCount(p))}</b>
                   </span>
                   <small>{desc}</small>
                 </button>
@@ -972,7 +962,7 @@ function App() {
             </div>
             <div className="field-row">
               <label className="field-label">
-                Entrants <span>{selected.length} selected</span>
+                {t("overview.drawer.entrants")} <span>{t("overview.drawer.selectedCount", { count: selected.length })}</span>
               </label>
               <button
                 className="text-button"
@@ -984,7 +974,7 @@ function App() {
                   )
                 }
               >
-                Select ready
+                {t("overview.drawer.selectReady")}
               </button>
             </div>
             <div className="entrant-select">
@@ -998,12 +988,12 @@ function App() {
                   <span>
                     <strong>{m.name}</strong>
                     <small>
-                      {m.hosted ? "Hosted" : m.size + " · Local"}
-                      {m.diagnostic ? " · Control" : ""}
+                      {m.hosted ? t("overview.drawer.hosted") : t("overview.drawer.local", { size: m.size })}
+                      {m.diagnostic ? t("overview.drawer.control") : ""}
                     </small>
                   </span>
                   <span className={m.ready ? "accent" : "muted"}>
-                    {m.ready ? "Ready" : "Setup"}
+                    {m.ready ? t("overview.drawer.ready") : t("overview.drawer.needsSetup")}
                   </span>
                 </label>
               ))}
@@ -1015,28 +1005,25 @@ function App() {
                 onChange={(e) => setJudge(e.target.checked)}
               />
               <span>
-                <strong>Optional Astra answer-key spot-check</strong>
-                <small>Separate from accuracy; uses Codex CLI usage.</small>
+                <strong>{t("overview.drawer.judgeTitle")}</strong>
+                <small>{t("overview.drawer.judgeDetail")}</small>
               </span>
             </label>
             <div className="config-note">
               <ShieldCheck size={16} />
-              <span>
-                This starts a separate test with a new $5 run cap. Full can take hours. Earlier results stay saved; this is not replay. Check any project-wide spending limits before starting.
-              </span>
+              <span>{t("overview.drawer.costNote")}</span>
             </div>
             <button
               className="button primary"
               disabled={busy || !selected.length || active}
               onClick={start}
             >
-              <Zap size={17} /> Start new {label(preset)} test{" "}
+              <Zap size={17} /> {t("overview.drawer.start", { preset: presetLabel(preset) })}{" "}
               <ArrowRight size={17} />
             </button>
             {blocked.length > 0 && (
               <p className="muted small">
-                {blocked.length} selected entrants need preparation. Open Setup
-                to resolve them.
+                {t("overview.drawer.entrantsNeedPreparation", { count: blocked.length })}
               </p>
             )}
           </section>
@@ -1081,6 +1068,8 @@ function Frontier({
   focus: string | null;
   onFocus: (id: string | null) => void;
 }) {
+  const { t } = useTranslation();
+  const fmt = useFormat();
   const chartRows = rows.map(e=>({...e, metrics:{...e.metrics, accuracy:answerScore(e), p50_ms:typicalTime(result,e.id)??null}}));
   const measured = chartRows.filter(
       (e) => e.metrics.p50_ms != null && e.metrics.accuracy != null,
@@ -1098,8 +1087,8 @@ function Frontier({
         role="img"
         aria-label={
           measured.length
-            ? "Accuracy versus median request latency"
-            : "Empty quality versus latency chart, awaiting measured results"
+            ? t("overview.frontier.label")
+            : t("overview.frontier.emptyLabel")
         }
       >
         <defs>
@@ -1117,7 +1106,7 @@ function Frontier({
           <g key={v}>
             <line x1="72" x2="812" y1={y(v)} y2={y(v)} className="grid-line" />
             <text x="53" y={y(v) + 4} textAnchor="end">
-              {v * 100}%
+              {fmt.percent(v, 0)}
             </text>
           </g>
         ))}
@@ -1133,18 +1122,18 @@ function Frontier({
                 className="grid-line vertical-line"
               />
               <text x={x(v)} y="397" textAnchor="middle">
-                {ms(v)}
+                {fmt.duration(v)}
               </text>
             </g>
           ))}
         <text x="73" y="22" className="axis-label">
-          ANSWER ACCURACY · SAME QUESTIONS ↑
+          {t("overview.frontier.yAxis")}
         </text>
         <text x="812" y="420" textAnchor="end" className="axis-label">
-          TYPICAL RESPONSE TIME · LOG SCALE →
+          {t("overview.frontier.xAxis")}
         </text>
         <text x="91" y="62" className="ideal-label">
-          HIGH QUALITY · LOW LATENCY
+          {t("overview.frontier.ideal")}
         </text>
         {measured.map((e, i) => {
           const chosen = focus === e.id || (!focus && i === 0);
@@ -1154,7 +1143,7 @@ function Frontier({
               className={`chart-point ${chosen ? "selected" : ""}`}
               tabIndex={0}
               role="button"
-              aria-label={`${e.name}: ${pct(e.metrics.accuracy)}, ${ms(e.metrics.p50_ms)}`}
+              aria-label={`${e.name}: ${fmt.percent(e.metrics.accuracy)}, ${fmt.duration(e.metrics.p50_ms)}`}
               onMouseEnter={() => onFocus(e.id)}
               onFocus={() => onFocus(e.id)}
               onClick={() => onFocus(e.id)}
@@ -1188,10 +1177,10 @@ function Frontier({
           <g className="chart-empty">
             <path d="M408 142h20l9-19 13 42 12-30h25" />
             <text x="447" y="199" textAnchor="middle">
-              Your first run starts the comparison.
+              {t("overview.frontier.emptyTitle")}
             </text>
             <text x="447" y="218" textAnchor="middle" className="sub">
-              Configure a new test to collect measurements.
+              {t("overview.frontier.emptyDetail")}
             </text>
           </g>
         )}
