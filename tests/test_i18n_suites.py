@@ -84,9 +84,46 @@ def test_english_suite_and_inventory_unchanged(monkeypatch):
     monkeypatch.setattr(suites, "imported", lambda: [])
     inv = suites.inventory()
     assert inv == suites.inventory("en")
-    assert list(inv) == ["version", "expected", "available", "packs", "presets", "fresh_status"]
-    assert inv["expected"] == 7671 and inv["available"] == 2440
-    assert inv["presets"] == [{"id": "smoke", "count": 36, "ready": True}, {"id": "demo", "count": 120, "ready": False}, {"id": "full", "count": 7671, "ready": False}]
+    original = ["version", "expected", "available", "packs", "presets", "fresh_status"]
+    assert list(inv)[:6] == original and list(inv)[6:] == ["language", "slots"]
+    counts = {"Arena Fresh": 1440, "Robustness": 1000}
+    assert {k: inv[k] for k in original} == {
+        "version": "arena-v2", "expected": 7671, "available": 2440,
+        "packs": [{"name": k, "expected": v, "available": counts.get(k, 0), "ready": counts.get(k, 0) == v} for k, v in suites.EXPECTED.items()],
+        "presets": [{"id": "smoke", "count": 36, "ready": True}, {"id": "demo", "count": 120, "ready": False}, {"id": "full", "count": 7671, "ready": False}],
+        "fresh_status": "Executable-policy fixtures v2: new seed, explicit routing and approval rules. Human semantic audit not claimed."}
+    assert inv["language"] == "en"
+    slots = {s["slot"]: s for s in inv["slots"]}
+    assert slots["sst2"] == {**slots["sst2"], "expected": 500, "available": 0, "ready": False}
+    assert slots["fresh"]["available"] == 1440 and slots["fresh"]["ready"]
+
+def test_english_slots_counted_by_family(monkeypatch):
+    def cases(pack, family, n, prefix):
+        base = smoke()[0]
+        return [base.model_copy(deep=True, update={"id": f"{prefix}-{i}", "pack": pack, "family": family, "provenance": {}}) for i in range(n)]
+    monkeypatch.setattr(suites, "jevbench", lambda: cases("JevBench public", "triage", 231, "jb"))
+    monkeypatch.setattr(suites, "imported", lambda: cases("Classification", "SST-2", 500, "sst") + cases("Classification", "AG News", 3, "ag")
+                        + cases("Multilingual", "XNLI", 500, "x") + cases("Typed decisions", "refund", 7, "ty") + cases("Typed decisions", "ship", 5, "ty2"))
+    slots = {s["slot"]: s for s in suites.inventory()["slots"]}
+    assert (slots["jevbench"]["available"], slots["jevbench"]["ready"]) == (231, True)
+    assert (slots["sst2"]["available"], slots["sst2"]["ready"]) == (500, True)
+    assert (slots["agnews"]["available"], slots["banking77"]["available"]) == (3, 0)
+    assert (slots["xnli"]["available"], slots["xnli"]["expected"], slots["xnli"]["ready"]) == (500, 500, True)
+    assert slots["massive"]["available"] == 0 and slots["typed-decisions"]["available"] == 12
+    assert slots["abcd"]["expected"] is None and not slots["abcd"]["ready"]
+    assert slots["episodes"]["ready"] and slots["episodes"]["available"] is None
+
+def test_language_without_datasets_config_is_all_missing(tmp_path, monkeypatch):
+    import shutil
+    from arena.i18n import datasets
+    from arena.config import ROOT
+    (tmp_path / "en").mkdir(); shutil.copy(ROOT / "locales" / "en" / "datasets.yaml", tmp_path / "en" / "datasets.yaml")
+    monkeypatch.setattr(datasets, "LOCALES", tmp_path)
+    monkeypatch.setattr(packs, "DATASETS", tmp_path / "datasets")
+    inv = suites.inventory("xx")
+    assert inv["language"] == "xx" and inv["expected"] == 0 and inv["packs"] == []
+    assert inv["slots"] and all(s["source"] == "missing" and s["reason"] == "no datasets.yaml" and not s["ready"] for s in inv["slots"])
+    assert {p["id"]: p["ready"] for p in inv["presets"]} == {"smoke": False, "demo": False, "full": False}
 
 @pytest.fixture
 def arena(tmp_path, monkeypatch):
@@ -136,13 +173,18 @@ def test_setup_prepares_selected_language(monkeypatch):
         calls.append(lang); progress("banking77: failed, skipped (EngineError: x)"); return {}
     monkeypatch.setattr(packs, "prepare_language", prepare_language)
     messages = []
+    done = "Preparation complete. Run Smoke before the full comparison."
     setup.prepare([], messages.append, models=False, workers=False)
-    assert calls == ["en"]
+    assert calls == ["en"] and messages[-1] == done
     settings.set_language("hu")
     setup.prepare([], messages.append, models=False, workers=False)
     assert calls == ["en", "en", "hu"] and "banking77: failed, skipped (EngineError: x)" in messages
+    assert messages[-1] == "Preparation complete; Hungarian data incomplete: banking77. Run Smoke before the full comparison."
+    def complete(lang, progress=None, only=None): progress("fresh: generated on demand"); progress("sst2: 500 cases"); return {}
+    monkeypatch.setattr(packs, "prepare_language", complete)
+    setup.prepare([], messages.append, models=False, workers=False)
+    assert messages[-1] == done
     def broken(lang, progress=None, only=None): raise RuntimeError("network down")
     monkeypatch.setattr(packs, "prepare_language", broken)
     setup.prepare([], messages.append, models=False, workers=False)
-    assert messages[-1] == "Preparation complete. Run Smoke before the full comparison."
-    assert any("network down" in m for m in messages)
+    assert messages[-1] == "Preparation complete; Hungarian data incomplete: RuntimeError: network down. Run Smoke before the full comparison."

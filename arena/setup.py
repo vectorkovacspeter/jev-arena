@@ -15,7 +15,28 @@ def execute(args,progress):
         p=subprocess.run(args,cwd=ROOT,stdout=log,stderr=subprocess.STDOUT,creationflags=flags)
     if p.returncode:raise RuntimeError(f'{args[0]} failed ({p.returncode}); inspect .arena/setup.log')
 
+def prepare_selected_language(progress):
+    """Build the selected non-English language's packs after the English ones. Never aborts setup: English is already frozen.
+    Returns None when complete, else {"name": language name, "slots": slots skipped or failed}."""
+    from arena.i18n.settings import get_language
+    from arena.i18n.locales import discover
+    lang=get_language()
+    if lang=='en':return None
+    from arena.i18n.packs import prepare_language
+    name=discover().get(lang,{}).get('name',lang);skipped=[]
+    def report(message):
+        slot,_,rest=message.partition(': ')
+        if rest.startswith(('skipped','failed')):skipped.append(slot)
+        progress(message)
+    progress(f'Preparing {name} evaluation datasets…')
+    try:prepare_language(lang,report)
+    except Exception as e:
+        progress(f'{name} datasets not fully prepared ({type(e).__name__}: {e}); English datasets are ready.')
+        skipped.append(f'{type(e).__name__}: {e}')
+    return {'name':name,'slots':skipped} if skipped else None
+
 def prepare(ids,progress=print,models=True,datasets=True,workers=True):
+    incomplete=None
     from arena.source_fetch import fetch,REPOS
     from arena.importers import prepare_all
     unknown=set(ids)-set(REGISTRY)
@@ -24,14 +45,7 @@ def prepare(ids,progress=print,models=True,datasets=True,workers=True):
         for item in REPOS.items():progress(fetch(item))
     if datasets:
         progress('Preparing and freezing evaluation datasets…');prepare_all()
-        from arena.i18n.settings import get_language
-        lang=get_language()
-        if lang!='en':
-            # English packs are already frozen; translated slots that cannot be built now are reported and skipped.
-            from arena.i18n.packs import prepare_language
-            progress(f'Preparing {lang} evaluation datasets…')
-            try:prepare_language(lang,progress)
-            except Exception as e:progress(f'{lang} datasets not fully prepared ({type(e).__name__}: {e}); English datasets are ready.')
+        incomplete=prepare_selected_language(progress)
     if workers and any(not REGISTRY[m].hosted and m!='uniform' for m in ids):
         if not shutil.which('docker'):raise RuntimeError('Docker is required. Start Docker Desktop with NVIDIA GPU support.')
         context=ROOT
@@ -50,7 +64,8 @@ def prepare(ids,progress=print,models=True,datasets=True,workers=True):
             execute(['docker','build','-f',str(context/'workers'/'Dockerfile.winnow-bridge'),'-t','jev-arena-winnow-bridge:0.1',str(context)],progress)
     if models:
         for mid in ids:prepare_model(mid,progress)
-    progress('Preparation complete. Run Smoke before the full comparison.')
+    if incomplete:progress(f"Preparation complete; {incomplete['name']} data incomplete: {', '.join(incomplete['slots'])}. Run Smoke before the full comparison.")
+    else:progress('Preparation complete. Run Smoke before the full comparison.')
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--models',nargs='+',default=['laya','plumb','decider']);p.add_argument('--skip-datasets',action='store_true');p.add_argument('--skip-workers',action='store_true');a=p.parse_args()
