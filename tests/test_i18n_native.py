@@ -96,7 +96,7 @@ def test_native_build_sentiment(offline):
         assert c.question.labels == list(names.values()) == ["negatív", "pozitív"]
         assert c.gold in c.question.labels
         assert c.provenance["label_ids"] == {"negatív": "negative", "pozitív": "positive"}
-        assert c.question.text == "Milyen érzelmet fejez ki ez a filmkritika?"
+        assert c.question.text == "Milyen hangvételű ez a filmkritika?"
         assert c.state.startswith("Mondat ")
         p = c.provenance
         assert (p["repo"], p["revision"], p["licence"], p["slot"]) == ("NYTK/HuSST", "abc123", "CC-BY-SA-4.0", "sst2")
