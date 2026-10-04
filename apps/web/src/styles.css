@@ -2757,3 +2757,27 @@ tbody tr.row-selected {
 .language-switcher{display:inline-flex;align-items:center;gap:6px}
 .language-switcher select{background:transparent;color:inherit;border:1px solid currentColor;border-radius:6px;padding:2px 6px;font:inherit}
 .english-only{margin:0 0 8px}
+
+/* Test-data language (Run configuration, Setup) and run language badge */
+.language-badge {
+  margin-left: 8px;
+  padding: 2px 5px;
+  vertical-align: middle;
+}
+.data-language {
+  margin: 8px 0 14px;
+  line-height: 1.6;
+}
+.data-language .text-button {
+  display: inline;
+  padding: 0;
+}
+.test-data {
+  margin-top: 35px;
+  border-top: 1px solid var(--line);
+  padding-top: 22px;
+}
+.data-slots .slot-reason {
+  display: block;
+  margin-top: 4px;
+}

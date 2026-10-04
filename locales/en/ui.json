@@ -201,7 +201,9 @@
       "ideal": "HIGH QUALITY · LOW LATENCY",
       "emptyTitle": "Your first run starts the comparison.",
       "emptyDetail": "Configure a new test to collect measurements."
-    }
+    },
+    "runOptionLanguage": "{{option}} · {{code}}",
+    "runLanguage": "Run language: {{language}}"
   },
   "results": {
     "emptyTitle": "No measured results yet",
@@ -284,7 +286,10 @@
       "massive": "Multilingual intent · MASSIVE",
       "scifact": "Document relevance · SciFact",
       "arena-fresh": "Explicit policy rules",
-      "robustness": "Changed-input checks"
+      "robustness": "Changed-input checks",
+      "husst": "Sentiment · HuSST",
+      "sib-200": "Topics · SIB-200",
+      "hucommitmentbank": "Entailment · HuCommitmentBank"
     },
     "errors": {
       "requestFailed": "Request failed ({{status}})",
@@ -450,7 +455,29 @@
     "typesafeKeyConfigured": "Server-side key configured",
     "typesafeKeyMissing": "Add TYPESAFE_API_KEY to your local .env file.",
     "typesafeAccount": "TypeSafe account",
-    "keysNote": "Keys stay on this machine. Reports exclude credentials and raw CLI logs. Third-party datasets are downloaded from their original sources."
+    "keysNote": "Keys stay on this machine. Reports exclude credentials and raw CLI logs. Third-party datasets are downloaded from their original sources.",
+    "dataLanguage_one": "Test data: {{language}} · {{n}} case",
+    "dataLanguage_other": "Test data: {{language}} · {{n}} cases",
+    "prepareDataFirst": "Prepare {{language}} data in Setup first",
+    "testData": {
+      "title": "Test data for {{language}}",
+      "hint": "Prepare selected also prepares the test data for this language. Translated slots need the English data and a translation engine; see docs/i18n/CONTRIBUTING-TRANSLATIONS.md.",
+      "columns": {
+        "slot": "SLOT",
+        "family": "FAMILY",
+        "source": "SOURCE",
+        "status": "STATUS",
+        "licence": "LICENCE"
+      },
+      "sources": {
+        "native": "Native",
+        "translated": "Translated",
+        "generated": "Generated",
+        "missing": "Missing"
+      },
+      "notInSuite": "Not in the Full suite",
+      "count": "{{available}} / {{expected}}"
+    }
   },
   "guide": {
     "takeaways": {
@@ -730,7 +757,10 @@
     "massive": "MASSIVE",
     "scifact": "SciFact",
     "warehouse": "Warehouse",
-    "tickets": "Tickets"
+    "tickets": "Tickets",
+    "husst": "HuSST",
+    "sib-200": "SIB-200",
+    "hucommitmentbank": "HuCommitmentBank"
   },
   "operations": {
     "performanceTitle": "Performance, measured separately.",

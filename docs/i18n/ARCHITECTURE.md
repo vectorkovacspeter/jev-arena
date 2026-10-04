@@ -36,7 +36,7 @@ A saved report embeds `window.__ARENA_REPORT__`. When present, the app does not 
 
 ## Dynamic key families
 
-Keys assembled at runtime (`errors.*`, `readiness.*`, `packs.*`, `families.*`, `status.*`, `nav.*` via `pageKeys` in `navigation.ts`, `results.verdicts`, `operations.{directions,queues,topics}`, `explore.{types,errors}`, `abcd.{errors,conditions}`) are invisible to `i18next-parser`. `i18next-parser.config.js` protects them with `keepRemoved` patterns built from the `dynamic` list. The parser tests `translation:<key>` (namespace separator `:`), which is why the patterns start with `^translation:`. Add every new family there.
+Keys assembled at runtime (`errors.*`, `readiness.*`, `packs.*`, `families.*`, `status.*`, `nav.*` via `pageKeys` in `navigation.ts`, `results.verdicts`, `operations.{directions,queues,topics}`, `explore.{types,errors}`, `abcd.{errors,conditions}`, `setup.testData.sources`) are invisible to `i18next-parser`. `i18next-parser.config.js` protects them with `keepRemoved` patterns built from the `dynamic` list. The parser tests `translation:<key>` (namespace separator `:`), which is why the patterns start with `^translation:`. Add every new family there.
 
 ## English-only content
 

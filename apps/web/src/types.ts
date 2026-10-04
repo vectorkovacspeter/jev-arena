@@ -73,7 +73,8 @@ export type Run = {
   status: string;
   error: string | null;
   request: { preset: string; model_ids: string[]; judge: boolean };
-  manifest: Record<string, unknown>;
+  /** `language` is the run language (absent on runs recorded before i18n, which are English). */
+  manifest: Record<string, unknown> & { language?: string };
 };
 export type Result = {
   manifest?: { case_sha256?: string };
@@ -150,6 +151,8 @@ export type Ready = {
     reason?: string;
   };
   suites: {
+    /** Language of the test data shown here: the global language setting. */
+    language: string;
     expected: number;
     available: number;
     packs: {
@@ -160,6 +163,7 @@ export type Ready = {
     }[];
     fresh_status: string;
     presets: { id: string; count: number; ready: boolean }[];
+    slots: DataSlot[];
   };
   active_run: string | null;
   setup: { status?: string; message?: string };
@@ -211,7 +215,10 @@ export type Episode = {
     step: number;
     before?: number[];
     after?: number[];
+    /** Localized label the model chose (non-English runs) or the English id. */
     answer: string | null;
+    /** Stable English id of `answer`; present only on non-English runs. */
+    answer_id?: string | null;
     request_ms: number;
     valid?: boolean;
     correct?: boolean;
@@ -221,3 +228,17 @@ export type Episode = {
   }[];
 };
 export type LocaleInfo = { code: string; name: string; nativeName: string; status: "complete" | "beta"; completeness: number };
+export type DataSource = "native" | "translated" | "generated" | "missing";
+/** One test-data slot of the active language (see locales/<code>/datasets.yaml). */
+export type DataSlot = {
+  slot: string;
+  pack: string;
+  family: string;
+  source: DataSource;
+  ready: boolean;
+  /** null when the slot has no fixed size (episodes) or is not part of the Full preset. */
+  expected: number | null;
+  available: number | null;
+  licence: string | null;
+  reason: string | null;
+};

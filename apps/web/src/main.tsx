@@ -48,7 +48,7 @@ import { safeLocale } from "./format";
 import { Trans } from "react-i18next";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { EnglishOnly } from "./EnglishOnly";
-import { packLabel, familyLabel, errorText } from "./labels";
+import { packLabel, familyLabel, errorText, runLanguage, unpreparedSlots } from "./labels";
 
 
 import "./styles.css";
@@ -321,13 +321,32 @@ function App({ locales }: { locales: LocaleInfo[] }) {
     blocked = models.filter((m) => selected.includes(m.id) && !m.ready),
     metricRows = result?.entrants || [];
 
+  // Case counts come from the inventory of the active test-data language; the constants are the English sizes.
+  const presetCount = (p: string) =>
+    ready?.suites.presets.find((x) => x.id === p)?.count ?? (p === "full" ? 7671 : p === "demo" ? 120 : 36);
+  const dataLanguage = ready?.suites.language || "en";
+  const dataLine = (p: string) =>
+    ready && (
+      <p className="data-language small muted">
+        {t("setup.dataLanguage", { language: fmt.languageName(dataLanguage), count: presetCount(p), n: fmt.number(presetCount(p)) })}
+        {unpreparedSlots(ready.suites.slots).length > 0 && !offline && (
+          <>
+            {" · "}
+            <button className="text-button" onClick={() => { setDrawer(false); setPage("setup"); }}>
+              {t("setup.prepareDataFirst", { language: fmt.languageName(dataLanguage) })}
+            </button>
+          </>
+        )}
+      </p>
+    );
+  const currentLanguage = runLanguage(current);
+
   const displayPreset =
     active || offline ? current?.request.preset || preset : preset;
 
   const planned = result
     ? result.case_count * result.entrants.length
-    : (preset === "full" ? 7671 : preset === "demo" ? 120 : 36) *
-      selected.length;
+    : presetCount(preset) * selected.length;
 
   const completed = metricRows.reduce((sum, e) => sum + e.metrics.completed, 0),
     best = metricRows
@@ -391,7 +410,6 @@ function App({ locales }: { locales: LocaleInfo[] }) {
     );
   }
 
-  const presetCount = (p: string) => (p === "full" ? 7671 : p === "demo" ? 120 : 36);
   const heading: Record<string, [string, string]> = {
     models: [t("overview.heading.models"), t("overview.lead.models")],
     takeaways: [t("overview.heading.takeaways"), t("overview.lead.takeaways")],
@@ -473,6 +491,11 @@ function App({ locales }: { locales: LocaleInfo[] }) {
                   : completed
                     ? t("overview.eyebrowMeasured")
                     : t("overview.eyebrowLab")}
+                {current && currentLanguage !== "en" && !showingAbcd && (
+                  <span className="tag language-badge" title={t("overview.runLanguage", { language: fmt.languageName(currentLanguage) })}>
+                    {currentLanguage.toUpperCase()}
+                  </span>
+                )}
               </div>
               <h1>{pageTitle}</h1>
               <p>{pageLead}</p>
@@ -484,17 +507,21 @@ function App({ locales }: { locales: LocaleInfo[] }) {
                   value={rid || ""}
                   onChange={(e) => setRid(e.target.value)}
                 >
-                  {runs.map((r) => (
-                    <option value={r.id} key={r.id}>
-                      {t("overview.runOption", {
-                        date: fmt.shortDate(r.created),
-                        preset: presetLabel(r.request.preset).toLocaleLowerCase(safeLocale(i18n.language)),
-                        count: r.request.model_ids.length,
-                        id: r.id.slice(-6),
-                        status: statusLabel(r.status),
-                      })}
-                    </option>
-                  ))}
+                  {runs.map((r) => {
+                    const option = t("overview.runOption", {
+                      date: fmt.shortDate(r.created),
+                      preset: presetLabel(r.request.preset).toLocaleLowerCase(safeLocale(i18n.language)),
+                      count: r.request.model_ids.length,
+                      id: r.id.slice(-6),
+                      status: statusLabel(r.status),
+                    });
+                    const lang = runLanguage(r);
+                    return (
+                      <option value={r.id} key={r.id}>
+                        {lang === "en" ? option : t("overview.runOptionLanguage", { option, code: lang.toUpperCase() })}
+                      </option>
+                    );
+                  })}
                 </select>
               )}
               {rid && !offline && !showingAbcd && (
@@ -549,7 +576,7 @@ function App({ locales }: { locales: LocaleInfo[] }) {
                         count: result.case_count,
                         n: fmt.number(result.case_count),
                       })
-                    : t("overview.scopeDefault", { n: fmt.number(7671) })}
+                    : t("overview.scopeDefault", { n: fmt.number(presetCount("full")) })}
                 </span>
               </div>
 
@@ -786,6 +813,7 @@ function App({ locales }: { locales: LocaleInfo[] }) {
                       <ChevronDown size={12} />
                     </span>
                   </button>
+                  {!active && dataLine(displayPreset)}
 
                   {blocked.length > 0 && !active && (
                     <button
@@ -931,6 +959,7 @@ function App({ locales }: { locales: LocaleInfo[] }) {
                 </button>
               ))}
             </div>
+            {dataLine(preset)}
             <div className="field-row">
               <label className="field-label">
                 {t("overview.drawer.entrants")} <span>{t("overview.drawer.selectedCount", { count: selected.length })}</span>
@@ -1634,6 +1663,14 @@ function Setup({
     }
   }
 
+  const dataLanguage = fmt.languageName(ready.suites.language || "en");
+  const slotStatus = (s: Ready["suites"]["slots"][number]) =>
+    s.ready
+      ? t("status.ready")
+      : s.expected == null
+        ? t("setup.testData.notInSuite")
+        : t("setup.testData.count", { available: fmt.number(s.available ?? 0), expected: fmt.number(s.expected) });
+
   return (
     <>
       <div className="setup-summary">
@@ -1769,6 +1806,55 @@ function Setup({
           </tbody>
         </table>
       </div>
+      {ready.suites.slots?.length > 0 && (
+        <section className="test-data">
+          <div className="section-title">
+            <div>
+              <h2>{t("setup.testData.title", { language: dataLanguage })}</h2>
+              <p>{t("setup.testData.hint")}</p>
+            </div>
+            <Database size={20} />
+          </div>
+          <div className="table-scroll">
+            <table className="setup-table data-slots">
+              <thead>
+                <tr>
+                  <th>{t("setup.testData.columns.slot")}</th>
+                  <th>{t("setup.testData.columns.family")}</th>
+                  <th>{t("setup.testData.columns.source")}</th>
+                  <th>{t("setup.testData.columns.status")}</th>
+                  <th>{t("setup.testData.columns.licence")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ready.suites.slots.map((s) => (
+                  <tr key={s.slot}>
+                    <td>
+                      <div className="model-name">
+                        {packLabel(t, s.pack)}
+                        <small className="mono">{s.slot}</small>
+                      </div>
+                    </td>
+                    <td>{familyLabel(t, s.family)}</td>
+                    <td>{t(`setup.testData.sources.${s.source}`, { defaultValue: s.source })}</td>
+                    <td>
+                      <span className={s.ready ? "accent" : "muted"}>
+                        {s.ready ? <Check size={13} /> : <Circle size={10} />} {slotStatus(s)}
+                      </span>
+                      {s.source === "missing" && s.reason && (
+                        <EnglishOnly>
+                          <small className="muted slot-reason">{s.reason}</small>
+                        </EnglishOnly>
+                      )}
+                    </td>
+                    <td className="small muted">{s.licence || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
       <div className="setup-bottom">
         <section>
           <div className="section-title">

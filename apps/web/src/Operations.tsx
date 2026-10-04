@@ -13,10 +13,11 @@ import type { TFunction } from "i18next";
 import { Trans } from "react-i18next";
 import type { Result, Episode } from "./types";
 import { useTranslation, useFormat } from "./i18n";
-import { slug } from "./labels";
+import { answerId, slug } from "./labels";
 import referenceCautions from "../../../docs/reference-cautions.json";
 
 // Episode answers and topics are data values compared in code; only their display text is translated.
+// Non-English runs store the localized label in `answer`; compare and look up labels by answerId(step).
 const directionLabel = (t: TFunction, d: string) =>
   t(`operations.directions.${d}`, { defaultValue: d });
 const queueLabel = (t: TFunction, q: string) =>
@@ -231,7 +232,7 @@ export function Operations({
                         total: fmt.number(tickets.length),
                         review: fmt.number(
                           unrestricted.filter(
-                            (step) => step.answer === "Review",
+                            (step) => answerId(step) === "Review",
                           ).length,
                         ),
                         unrestricted: fmt.number(unrestricted.length),
@@ -605,8 +606,8 @@ export function EpisodeReplay({ result }: { result: Result }) {
                 <strong>
                   {last?.answer
                     ? task === "warehouse"
-                      ? directionLabel(t, last.answer)
-                      : queueLabel(t, last.answer)
+                      ? directionLabel(t, answerId(last)!)
+                      : queueLabel(t, answerId(last)!)
                     : "—"}
                   {last?.deadline_missed && <TriangleAlert size={16} />}
                 </strong>
@@ -791,13 +792,13 @@ function TicketBoard({
         {["Billing", "Engineering", "Success", "Review"].map((queue) => (
           <div
             key={queue}
-            className={active?.answer === queue ? "selected" : ""}
+            className={answerId(active) === queue ? "selected" : ""}
           >
             <span>{queueLabel(t, queue)}</span>
-            <strong>{steps.filter((s) => s.answer === queue).length}</strong>
+            <strong>{steps.filter((s) => answerId(s) === queue).length}</strong>
             <div className="queue-dots">
               {steps
-                .filter((s) => s.answer === queue)
+                .filter((s) => answerId(s) === queue)
                 .map((s, i) => (
                   <i key={i} className={s.correct ? "correct" : "incorrect"} />
                 ))}

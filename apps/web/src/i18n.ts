@@ -44,6 +44,7 @@ export function useFormat() {
     points: (v: number | null | undefined, d = 1) => f.points(l, v, d),
     duration: (v: number | null | undefined) => f.duration(l, v),
     shortDate: (s: number) => f.shortDate(l, s),
+    languageName: (code: string) => f.languageName(l, code),
   }), [l]);
 }
 

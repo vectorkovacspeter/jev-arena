@@ -16,3 +16,15 @@ export const errorText = (t: TFunction, e: unknown) => {
       .join("; ");
   return t(`errors.${x.code}`, { ...params, defaultValue: x.message });
 };
+
+/** Run language from the manifest; runs recorded before i18n have none and are English. */
+export const runLanguage = (run: { manifest?: { language?: unknown } } | null | undefined) =>
+  typeof run?.manifest?.language === "string" && run.manifest.language ? run.manifest.language : "en";
+
+/** Stable (English) id of an episode answer: non-English runs store the localized label in `answer` and the id in `answer_id`. */
+export const answerId = (step: { answer: string | null; answer_id?: string | null } | null | undefined) =>
+  step ? (step.answer_id ?? step.answer) : null;
+
+/** Slots that Prepare can still fill: not ready, not missing, and part of a fixed-size suite. */
+export const unpreparedSlots = <S extends { source: string; ready: boolean; expected: number | null }>(slots: S[] | undefined) =>
+  (slots || []).filter((s) => !s.ready && s.source !== "missing" && s.expected != null);

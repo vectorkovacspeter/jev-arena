@@ -18,6 +18,8 @@ type Group = { key: string; pack: string; family: string; cases: number; referen
 type Analysis = { run_id: string; groups: Group[]; models: string[]; shared_reference_n: number };
 type Facet = { pack: string; family: string; count: number };
 type CaseIndex = { total: number; cases: (Case & { preview: string })[]; facets: Facet[] };
+// Quick filters; Hungarian runs use native families in place of AG News, SST-2 and XNLI. Absent groups are hidden.
+const quickTypes = [["", ""], ["Classification", "AG News"], ["Classification", "SIB-200"], ["Classification", "SST-2"], ["Classification", "HuSST"], ["Classification", "BANKING77"], ["Multilingual", "XNLI"], ["Multilingual", "HuCommitmentBank"], ["Arena Fresh", ""], ["RAG relevance", "SciFact"]];
 // Descriptive question-type names live in explore.types.<slug>; other names fall back to the pack/family label.
 const title = (t: TFunction, pack: string, family: string) =>
   family ? t(`explore.types.${slug(family)}`, { defaultValue: familyLabel(t, family) })
@@ -65,7 +67,7 @@ export function TaskAnalysis({ result, onCases }: { result: Result; onCases: (ju
     <div className="section-title"><div><h2>{t("explore.analysis.title")}</h2><p>{t("explore.analysis.intro")}</p></div></div>
     {error != null && <p role="alert">{errorText(t, error)}</p>}{!data && error == null && <p role="status">{t("explore.analysis.loading")}</p>}
     {data && group && <>
-      <div className="quick-types" aria-label={t("explore.jumpToType")}>{[["", ""], ["Classification", "AG News"], ["Classification", "SST-2"], ["Classification", "BANKING77"], ["Multilingual", "XNLI"], ["Arena Fresh", ""], ["RAG relevance", "SciFact"]].filter(([p, f]) => data.groups.some(g => g.key === `${p}::${f}`)).map(([p, f]) => <button key={p+f} aria-pressed={group.key === `${p}::${f}`} className={group.key === `${p}::${f}` ? "selected" : ""} onClick={() => setGroupKey(group.key === `${p}::${f}` ? "::" : `${p}::${f}`)}>{title(t, p, f)}</button>)}</div>
+      <div className="quick-types" aria-label={t("explore.jumpToType")}>{quickTypes.filter(([p, f]) => data.groups.some(g => g.key === `${p}::${f}`)).map(([p, f]) => <button key={p+f} aria-pressed={group.key === `${p}::${f}`} className={group.key === `${p}::${f}` ? "selected" : ""} onClick={() => setGroupKey(group.key === `${p}::${f}` ? "::" : `${p}::${f}`)}>{title(t, p, f)}</button>)}</div>
       <div className="abcd-controls">
         <label>{t("explore.questionType")}<select value={group.key} onChange={e => setGroupKey(e.target.value)}>{data.groups.map(g => <option key={g.key} value={g.key}>{g.family ? "↳ " : ""}{title(t, g.pack, g.family)} · {fmt.number(g.cases)}</option>)}</select></label>
         <label>{t("explore.model")}<select value={model} onChange={e => setModel(e.target.value)}><option value="">{t("explore.analysis.compareAll", { n: fmt.number(result.entrants.length) })}</option>{result.entrants.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>

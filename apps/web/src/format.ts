@@ -34,3 +34,12 @@ export const duration = (locale: string, ms: N) => {
 
 export const shortDate = (locale: string, epochSeconds: number) =>
   new Date(epochSeconds * 1000).toLocaleDateString(safeLocale(locale), { month: "short", day: "numeric" });
+
+/** Language name in the display language (e.g. "Hungarian" / "magyar"); falls back to the code. */
+export const languageName = (locale: string, code: string) => {
+  try {
+    return new Intl.DisplayNames([safeLocale(locale)], { type: "language" }).of(code) ?? code;
+  } catch {
+    return code;
+  }
+};

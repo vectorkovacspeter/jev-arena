@@ -201,7 +201,9 @@
       "ideal": "MAGAS MINŐSÉG · ALACSONY KÉSLELTETÉS",
       "emptyTitle": "Az első futtatásod elindítja az összehasonlítást.",
       "emptyDetail": "Állíts be egy új tesztet a mérések gyűjtéséhez."
-    }
+    },
+    "runOptionLanguage": "{{option}} · {{code}}",
+    "runLanguage": "A futtatás nyelve: {{language}}"
   },
   "results": {
     "emptyTitle": "Még nincsenek mért eredmények",
@@ -284,7 +286,10 @@
       "massive": "Többnyelvű szándékfelismerés · MASSIVE",
       "scifact": "Dokumentumrelevancia · SciFact",
       "arena-fresh": "Kifejezett szabályzati előírások",
-      "robustness": "Módosított bemenetek ellenőrzése"
+      "robustness": "Módosított bemenetek ellenőrzése",
+      "husst": "Hangulatelemzés · HuSST",
+      "sib-200": "Témák · SIB-200",
+      "hucommitmentbank": "Következtetés · HuCommitmentBank"
     },
     "errors": {
       "requestFailed": "A kérés sikertelen ({{status}})",
@@ -450,7 +455,29 @@
     "typesafeKeyConfigured": "Kiszolgálóoldali kulcs beállítva",
     "typesafeKeyMissing": "Add hozzá a TYPESAFE_API_KEY-t a helyi .env fájlodhoz.",
     "typesafeAccount": "TypeSafe-fiók",
-    "keysNote": "A kulcsok ezen a gépen maradnak. A jelentések nem tartalmaznak hitelesítő adatokat és nyers CLI-naplókat. A külső adatkészleteket az eredeti forrásukból töltjük le."
+    "keysNote": "A kulcsok ezen a gépen maradnak. A jelentések nem tartalmaznak hitelesítő adatokat és nyers CLI-naplókat. A külső adatkészleteket az eredeti forrásukból töltjük le.",
+    "dataLanguage_one": "Tesztadatok: {{language}} · {{n}} eset",
+    "dataLanguage_other": "Tesztadatok: {{language}} · {{n}} eset",
+    "prepareDataFirst": "Előbb készítsd elő a tesztadatokat ({{language}}) a Beállítás oldalon",
+    "testData": {
+      "title": "Tesztadatok: {{language}}",
+      "hint": "A Kijelöltek előkészítése ennek a nyelvnek a tesztadatait is előkészíti. A fordított tételekhez kellenek az angol adatok és egy fordítómotor; lásd: docs/i18n/CONTRIBUTING-TRANSLATIONS.md.",
+      "columns": {
+        "slot": "TÉTEL",
+        "family": "CSALÁD",
+        "source": "FORRÁS",
+        "status": "ÁLLAPOT",
+        "licence": "LICENC"
+      },
+      "sources": {
+        "native": "Eredeti",
+        "translated": "Fordított",
+        "generated": "Generált",
+        "missing": "Hiányzik"
+      },
+      "notInSuite": "Nem része a Teljes tesztcsomagnak",
+      "count": "{{available}} / {{expected}}"
+    }
   },
   "guide": {
     "takeaways": {
@@ -730,7 +757,10 @@
     "massive": "MASSIVE",
     "scifact": "SciFact",
     "warehouse": "Raktár",
-    "tickets": "Hibajegyek"
+    "tickets": "Hibajegyek",
+    "husst": "HuSST",
+    "sib-200": "SIB-200",
+    "hucommitmentbank": "HuCommitmentBank"
   },
   "operations": {
     "performanceTitle": "Teljesítmény, külön mérve.",
