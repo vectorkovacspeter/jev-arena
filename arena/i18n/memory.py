@@ -1,6 +1,7 @@
 """Translation memory: one JSONL file per language and slot, .arena/translations/<lang>/<slot>.jsonl.
 
-One row per source text: {src_sha256, src, tgt, engine, model, revision, at, reviewed}. New translations are
+One row per source text: {src_sha256, src, tgt, engine, model, revision, at, reviewed[, rejected]}. A row rejected in
+review (or with an empty target) is not usable: builds treat it as missing until an edit or `tm import` replaces it. New translations are
 appended (an interrupted run resumes where it stopped and nothing is translated twice); review edits and imports
 rewrite the file atomically. Translated text is third-party derived data and is never committed.
 """
@@ -50,26 +51,36 @@ class TranslationMemory:
 
     def row(self, src: str) -> dict | None: return self._rows.get(src_sha(src))
 
+    @staticmethod
+    def usable(row: dict | None) -> bool:
+        return bool(row) and not row.get("rejected") and isinstance(row.get("tgt"), str) and bool(row["tgt"].strip())
+
     def get(self, src: str) -> str | None:
+        """The translation, or None when there is none or it was rejected."""
         row = self.row(src)
-        return row["tgt"] if row else None
+        return row["tgt"] if self.usable(row) else None
 
     def missing(self, texts: Iterable[str]) -> list[str]:
-        """Texts without a translation, deduplicated, in first-seen order."""
+        """Texts without a usable translation (absent, empty or rejected), deduplicated, in first-seen order."""
         seen, out = set(), []
         for text in texts:
             sha = src_sha(text)
-            if sha in seen or sha in self._rows: continue
+            if sha in seen or self.usable(self._rows.get(sha)): continue
             seen.add(sha); out.append(text)
         return out
 
+    def rejected(self, texts: Iterable[str]) -> list[str]:
+        return [t for t in dict.fromkeys(texts) if (row := self.row(t)) and row.get("rejected")]
+
     def put_many(self, rows: Iterable[dict]) -> int:
-        """Append new translations ({src, tgt, engine, model, revision[, reviewed]}); sources already stored are skipped."""
+        """Append new translations ({src, tgt, engine, model, revision[, reviewed]}); sources already stored are skipped
+        (a stored row with an empty target is replaced). Empty targets are rejected."""
         new = []
         for r in rows:
             sha = src_sha(r["src"])
-            if sha in self._rows: continue
-            if not isinstance(r.get("tgt"), str): raise ValueError(f"{self.slot}: translation of {r['src'][:40]!r} is not text")
+            old = self._rows.get(sha)
+            if old is not None and isinstance(old.get("tgt"), str) and old["tgt"].strip(): continue
+            if not isinstance(r.get("tgt"), str) or not r["tgt"].strip(): raise ValueError(f"{self.slot}: empty translation of {r['src'][:40]!r}")
             row = {"src_sha256": sha, "src": r["src"], "tgt": r["tgt"], "engine": r.get("engine", ""), "model": r.get("model", ""),
                    "revision": r.get("revision", ""), "at": r.get("at") or _now(), "reviewed": bool(r.get("reviewed", False))}
             self._rows[sha] = row; new.append(row)
@@ -79,11 +90,15 @@ class TranslationMemory:
                 handle.write("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in new))
         return len(new)
 
-    def update(self, src: str, tgt: str | None = None, reviewed: bool | None = None) -> None:
+    def update(self, src: str, tgt: str | None = None, reviewed: bool | None = None, rejected: bool | None = None) -> None:
         row = self.row(src)
         if row is None: raise KeyError(f"{self.slot}: no translation for {src[:40]!r}")
-        if tgt is not None: row["tgt"] = tgt; row["at"] = _now()
+        if tgt is not None:
+            if not tgt.strip(): raise ValueError(f"{self.slot}: empty translation of {src[:40]!r}")
+            row["tgt"] = tgt; row["at"] = _now(); row.pop("rejected", None)
         if reviewed is not None: row["reviewed"] = reviewed
+        if rejected: row["rejected"] = True; row["reviewed"] = False
+        elif rejected is False: row.pop("rejected", None)
         self._save()
 
     def _save(self) -> None:
@@ -98,20 +113,27 @@ class TranslationMemory:
 
     def import_(self, path) -> int:
         """Read {src_sha256, tgt[, src, reviewed, engine, model, revision]} rows. Sources missing from a row are looked up in
-        the memory and in the manual pending file. Imported rows replace existing translations; `reviewed` is kept."""
+        the memory and in the manual pending file. Imported rows replace existing translations (and clear a rejection).
+        `reviewed` is kept when the target is unchanged and reset when it changed, unless the row sets it. Pending entries
+        resolved by the import are removed from the pending file."""
         pending = pending_path(self.lang, self.slot)
         known = {r["src_sha256"]: r["src"] for r in read_jsonl(pending)} if pending.exists() else {}
         known.update({sha: r["src"] for sha, r in self._rows.items()})
-        count = 0
+        count, resolved = 0, set()
         for r in read_jsonl(path):
             sha = r.get("src_sha256") or (src_sha(r["src"]) if "src" in r else None)
             src = r.get("src") or known.get(sha)
             if src is None or src_sha(src) != sha: raise ValueError(f"{Path(path).name}: unknown source {sha} (no src and not pending)")
-            if not isinstance(r.get("tgt"), str) or not r["tgt"]: raise ValueError(f"{Path(path).name}: empty translation for {sha}")
+            if not isinstance(r.get("tgt"), str) or not r["tgt"].strip(): raise ValueError(f"{Path(path).name}: empty translation for {sha}")
             old = self._rows.get(sha, {})
+            reviewed = r["reviewed"] if "reviewed" in r else (old.get("reviewed", False) if old.get("tgt") == r["tgt"] else False)
             self._rows[sha] = {"src_sha256": sha, "src": src, "tgt": r["tgt"], "engine": r.get("engine") or "manual",
                                "model": r.get("model", ""), "revision": r.get("revision", ""),
-                               "at": r.get("at") or _now(), "reviewed": bool(r.get("reviewed", old.get("reviewed", False)))}
-            count += 1
+                               "at": r.get("at") or _now(), "reviewed": bool(reviewed)}
+            count += 1; resolved.add(sha)
         self._save()
+        if pending.exists():
+            left = [row for row in read_jsonl(pending) if row["src_sha256"] not in resolved]
+            if left: write_jsonl(pending, left)
+            else: pending.unlink()
         return count

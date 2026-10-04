@@ -8,12 +8,14 @@ slots:
     family: JevBench
     sample: 231
     engine: opus-mt
+    needs_review: true   # JSON states: code-like values stay English (provenance.untranslated_json_values); review before trusting
   typed-decisions:
     source: translated
     pack: Typed decisions
     family: Typed decisions
     sample: 2000
     engine: opus-mt
+    needs_review: true   # native label sets and criteria are machine-translated; review before trusting
   sst2:
     source: native
     pack: Classification

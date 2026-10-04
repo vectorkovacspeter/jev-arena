@@ -92,8 +92,10 @@ class OpusMTEngine:
         if revision is None: raise EngineUnavailable(f"opus-mt: no pinned revision for {repo}; add it to OPUS_MT_REVISIONS in arena/i18n/engines.py")
         if repo not in self._loaded:
             from transformers import MarianMTModel, MarianTokenizer
-            tokenizer = MarianTokenizer.from_pretrained(repo, revision=revision)
-            model = MarianMTModel.from_pretrained(repo, revision=revision); model.eval()
+            try:
+                tokenizer = MarianTokenizer.from_pretrained(repo, revision=revision)
+                model = MarianMTModel.from_pretrained(repo, revision=revision); model.eval()
+            except (OSError, ValueError) as e: raise EngineError(f"opus-mt: cannot load {repo}@{revision[:12]}: {type(e).__name__}") from None
             self._loaded[repo] = (tokenizer, model)
         self.model, self.revision = repo, revision
         return self._loaded[repo]

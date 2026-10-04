@@ -31,9 +31,9 @@ def _review(args) -> int:
     import random
     from arena.i18n.memory import TranslationMemory
     tm = TranslationMemory(args.lang, args.slot)
-    pending = [r for r in tm.rows() if not r["reviewed"]]
+    pending = [r for r in tm.rows() if not r["reviewed"] and not r.get("rejected")]
     sample = random.Random(args.seed).sample(pending, min(args.sample, len(pending)))
-    reviewed = 0
+    reviewed = rejected = 0
     for i, row in enumerate(sample, 1):
         print(f"\n[{i}/{len(sample)}] en: {row['src']}\n{' ' * (len(str(i)) + len(str(len(sample))) + 3)}{args.lang}: {row['tgt']}")
         answer = ""
@@ -43,7 +43,11 @@ def _review(args) -> int:
         elif answer == "e":
             edited = input("Corrected translation: ").strip()
             if edited: tm.update(row["src"], tgt=edited, reviewed=True); reviewed += 1
-    print(f"Reviewed {reviewed} of {len(sample)} sampled ({len(pending) - reviewed} unreviewed left in {tm.path})")
+        else:  # n: offer an edit; an empty edit rejects the row (builds then treat it as missing)
+            edited = input("Corrected translation (empty = reject): ").strip()
+            if edited: tm.update(row["src"], tgt=edited, reviewed=True); reviewed += 1
+            else: tm.update(row["src"], rejected=True); rejected += 1
+    print(f"Reviewed {reviewed} of {len(sample)} sampled, rejected {rejected} ({len(pending) - reviewed - rejected} unreviewed left in {tm.path})")
     return 0
 
 def _tm(args) -> int:
@@ -83,9 +87,10 @@ def main(argv=None):
         return {"translate": _translate, "review": _review, "tm": _tm}[args.command](args)
     if args.command == "prepare":
         from arena.i18n import packs
+        from arena.i18n.engines import EngineError
         try:
             result = packs.prepare_language(args.lang, lambda message: print(message, flush=True), only=args.only)
-        except (FileNotFoundError, ValueError, KeyError) as e:
+        except (FileNotFoundError, ValueError, KeyError, EngineError) as e:
             print(f"Error: {e}")
             return 1
         print(f"{args.lang}: {sum(result.values())} cases in {len(result)} pack files")

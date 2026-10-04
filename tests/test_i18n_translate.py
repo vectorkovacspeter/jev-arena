@@ -307,3 +307,163 @@ def test_cli_tm_export(tm_root, tmp_path, capsys):
     out = tmp_path / "x.jsonl"
     assert main(["tm", "export", "--lang", "hu", "--slot", "s", str(out)]) == 0
     assert json.loads(out.read_text(encoding="utf-8").splitlines()[0])["tgt"] == "[hu] a"
+
+# --- fix round 1: JSON states, resilient prepare, TM hygiene ---------------------
+
+JSON_SLOT = Slot(source="translated", pack="JevBench public", family="JevBench", sample=1, engine="fake", needs_review=True)
+
+def json_case():
+    state = {"status": "overdue", "next_step": "escalate_to_manager", "order": "ORD 4711 A", "policy": "If status is overdue, escalate.",
+             "owner": "Alice", "ticket": "TCK-12", "flag": "needs_followup", "note": "Waited 3 days for a reply.", "count": 3, "tags": ["urgent", "VIP"]}
+    return Case(id="jevbench-j1", cluster="jevbench-j1", pack="JevBench public", family="tickets", state=json.dumps(state),
+                question=Question(id="decision", kind="choice", text="What next?", labels=["escalate_to_manager", "close_ticket"]),
+                gold="escalate_to_manager", label_status="public")
+
+@pytest.mark.parametrize("value,kind", [("escalate_to_manager", "label"), ("overdue", "text"), ("If status is overdue, escalate.", "text"),
+                                        ("Waited 3 days for a reply.", "text"), ("ORD 4711 A", "keep"), ("TCK-12", "keep"), ("needs_followup", "keep"),
+                                        ("VIP", "keep"), ("Alice", "keep"), ("ORD4711", "keep"), ("", "keep"), ("A B-2", "keep")])
+def test_json_value_kind(value, kind):
+    assert translated.json_value_kind(value, {"escalate_to_manager", "close_ticket"}) == kind
+
+def test_json_state_maps_labels_keeps_codes_and_records_them(tm_root):
+    case = json_case()
+    texts = translated.texts_for("jevbench", [case], JSON_SLOT)
+    assert texts == ["overdue", "If status is overdue, escalate.", "Waited 3 days for a reply.", "urgent", "What next?", "escalate to manager", "close ticket"]
+    tm = memory.TranslationMemory("hu", "jevbench")
+    translated.translate("hu", "jevbench", texts, "fake", tm)
+    (built,) = translated.build("hu", "jevbench", JSON_SLOT, [case], tm)
+    state = json.loads(built.state)
+    assert state["next_step"] == "[hu]_escalate_to_manager" == built.gold
+    assert state["status"] == "[hu] overdue" and state["policy"] == "[hu] If status is overdue, escalate." and state["note"] == "[hu] Waited 3 days for a reply."
+    assert state["order"] == "ORD 4711 A" and state["ticket"] == "TCK-12" and state["flag"] == "needs_followup" and state["owner"] == "Alice"
+    assert state["count"] == 3 and state["tags"] == ["[hu] urgent", "VIP"]
+    assert built.provenance["untranslated_json_values"] == ["ORD 4711 A", "Alice", "TCK-12", "needs_followup", "VIP"]
+    assert built.provenance["needs_review"] is True
+
+def test_hu_machine_translated_slots_need_review():
+    from arena.i18n import datasets
+    hu = datasets.load_slots("hu")
+    assert hu["jevbench"].needs_review and hu["typed-decisions"].needs_review and not hu["banking77"].needs_review
+
+def test_texts_for_needs_the_slot():
+    with pytest.raises(TypeError): translated.texts_for("typed-decisions", typed_cases())
+
+def test_all_label_collisions_are_reported_together(tm_root):
+    english = typed_cases()
+    tm = memory.TranslationMemory("hu", "typed-decisions")
+    texts = translated.texts_for("typed-decisions", english, TYPED)
+    tm.put_many([{**r, "tgt": "Ugyanaz" if r["src"] in ("Review", "close ticket") else r["tgt"]} for r in fake_rows(texts)])
+    with pytest.raises(translated.LabelCollision) as info: translated.build("hu", "typed-decisions", TYPED, english, tm)
+    assert "typed-r1-q1" in str(info.value) and "typed-r2-q1" in str(info.value) and "2 cases" in str(info.value)
+
+class Boom(engines.FakeEngine):
+    name = "boom"
+    def translate(self, texts, src, tgt): raise engines.EngineError("boom: HTTP 500: server error")
+
+def test_prepare_skips_failing_translated_slots_and_saves_the_rest(tm_root, monkeypatch, tmp_path):
+    from arena.i18n import native
+    monkeypatch.setitem(engines.ENGINES, "boom", Boom)
+    monkeypatch.setattr(packs, "DATASETS", tmp_path / "datasets")
+    monkeypatch.setattr(translated, "DATASETS", tmp_path / "datasets")
+    (tmp_path / "datasets").mkdir()
+    (tmp_path / "datasets" / "typed-cases.jsonl").write_text("\n".join(c.model_dump_json() for c in typed_cases()) + "\n", encoding="utf-8")
+    (tmp_path / "datasets" / "classification-cases.jsonl").write_text(banking_case().model_dump_json() + "\n", encoding="utf-8")
+    sst = Slot(source="native", pack="Classification", family="HuSST", repo="r", revision="x", files=["f"], sample=1)
+    native_case = Case(id="hu:sst2-1", cluster="hu:sst2-1", pack="Classification", family="HuSST", language="hu", state="Jó film.",
+                       question=Question(id="label", kind="choice", text="?", labels=["negatív", "pozitív"]), gold="pozitív", provenance={"slot": "sst2"})
+    monkeypatch.setattr(native, "build", lambda lang, slot_id, slot: [native_case])
+    collide = Slot(**{**TYPED.model_dump(), "engine": "fake"})
+    slots = {"typed-decisions": collide, "banking77": Slot(**{**BANKING.model_dump(), "engine": "boom"}), "sst2": sst}
+    monkeypatch.setattr(packs, "load_slots", lambda lang: slots)
+    tm = memory.TranslationMemory("hu", "typed-decisions")
+    texts = translated.texts_for("typed-decisions", typed_cases(), TYPED)
+    tm.put_many([{**r, "tgt": "Ugyanaz" if r["src"] in ("Review", "close ticket") else r["tgt"]} for r in fake_rows(texts)])
+    messages = []
+    assert packs.prepare_language("hu", messages.append) == {"classification": 1}
+    assert any(m.startswith("typed-decisions: failed, skipped (LabelCollision") for m in messages)
+    assert any(m.startswith("banking77: failed, skipped (EngineError: boom: HTTP 500") for m in messages)
+    assert [c.id for c in packs.read_pack("hu", "classification")] == ["hu:sst2-1"]
+
+def test_cli_translate_engine_error_is_one_line(tm_root, monkeypatch, capsys):
+    monkeypatch.setitem(engines.ENGINES, "boom", Boom)
+    monkeypatch.setattr(translated, "english_cases", lambda slot_id, slot: [scifact_case()])
+    monkeypatch.setattr(translated, "load_slots", lambda lang: {"scifact": SCIFACT})
+    assert main(["translate", "--lang", "hu", "--slot", "scifact", "--engine", "boom"]) == 1
+    assert capsys.readouterr().out.strip().splitlines() == ["Error: boom: HTTP 500: server error"]
+
+def test_cli_prepare_engine_error_is_one_line(monkeypatch, capsys):
+    def fail(*a, **kw): raise engines.EngineError("opus-mt: cannot load model")
+    monkeypatch.setattr(packs, "prepare_language", fail)
+    assert main(["prepare", "--lang", "hu"]) == 1
+    assert capsys.readouterr().out.strip().splitlines() == ["Error: opus-mt: cannot load model"]
+
+def test_empty_targets_are_rejected_and_count_as_missing(tm_root):
+    tm = memory.TranslationMemory("hu", "s")
+    with pytest.raises(ValueError, match="empty"): tm.put_many([{"src": "a", "tgt": "  "}])
+    tm.path.parent.mkdir(parents=True, exist_ok=True)
+    tm.path.write_text(json.dumps({"src_sha256": memory.src_sha("a"), "src": "a", "tgt": "", "engine": "x", "model": "", "revision": "", "at": "", "reviewed": False}) + "\n", encoding="utf-8")
+    tm = memory.TranslationMemory("hu", "s")
+    assert tm.missing(["a"]) == ["a"] and tm.get("a") is None
+    assert tm.put_many(fake_rows(["a"])) == 1 and tm.get("a") == "[hu] a"
+
+def test_engine_empty_outputs_stay_missing(tm_root, monkeypatch):
+    class Blank(engines.FakeEngine):
+        def translate(self, texts, src, tgt): return ["" if t == "b" else t.upper() for t in texts]
+    monkeypatch.setitem(engines.ENGINES, "fake", Blank)
+    tm = memory.TranslationMemory("hu", "s")
+    messages = []
+    assert translated.translate("hu", "s", ["a", "b"], "fake", tm, messages.append) == 1
+    assert tm.missing(["a", "b"]) == ["b"] and any("1 empty" in m for m in messages)
+
+def test_import_resets_reviewed_when_target_changes(tm_root, tmp_path):
+    tm = memory.TranslationMemory("hu", "s")
+    tm.put_many(fake_rows(["a", "b", "c"]))
+    for t in "abc": tm.update(t, reviewed=True)
+    f = tmp_path / "in.jsonl"
+    f.write_text("\n".join(json.dumps(r) for r in [{"src_sha256": memory.src_sha("a"), "tgt": "[hu] a"}, {"src_sha256": memory.src_sha("b"), "tgt": "új"},
+                                                   {"src_sha256": memory.src_sha("c"), "tgt": "más", "reviewed": True}]), encoding="utf-8")
+    tm.import_(f)
+    assert tm.row("a")["reviewed"] is True and tm.row("b")["reviewed"] is False and tm.row("c")["reviewed"] is True
+
+def test_import_clears_resolved_pending_entries(tm_root, tmp_path):
+    tm = memory.TranslationMemory("hu", "s")
+    with pytest.raises(engines.ManualPending): translated.translate("hu", "s", ["x", "y"], "manual", tm)
+    pending = memory.pending_path("hu", "s")
+    f = tmp_path / "in.jsonl"
+    f.write_text(json.dumps({"src_sha256": memory.src_sha("x"), "tgt": "iksz"}) + "\n", encoding="utf-8")
+    tm.import_(f)
+    assert [r["src"] for r in memory.read_jsonl(pending)] == ["y"]
+    f.write_text(json.dumps({"src_sha256": memory.src_sha("y"), "tgt": "ipszilon"}) + "\n", encoding="utf-8")
+    tm.import_(f)
+    assert not pending.exists()
+
+def test_review_no_then_edit_or_reject(tm_root, monkeypatch, capsys):
+    tm = memory.TranslationMemory("hu", "s")
+    tm.put_many(fake_rows(["a", "b"]))
+    answers = iter(["n", "Javítva", "n", ""])
+    monkeypatch.setattr("builtins.input", lambda prompt="": next(answers))
+    assert main(["review", "--lang", "hu", "--slot", "s", "--sample", "2"]) == 0
+    tm = memory.TranslationMemory("hu", "s")
+    edited = [r for r in tm.rows() if r["tgt"] == "Javítva"]
+    rejected = [r for r in tm.rows() if r.get("rejected")]
+    assert len(edited) == 1 and edited[0]["reviewed"] and len(rejected) == 1 and not rejected[0]["reviewed"]
+    assert tm.missing(["a", "b"]) == [rejected[0]["src"]] and tm.get(rejected[0]["src"]) is None
+    assert "rejected 1" in capsys.readouterr().out
+
+def test_rejected_rows_are_not_retranslated_or_built(tm_root):
+    case = scifact_case()
+    tm = memory.TranslationMemory("hu", "scifact")
+    translated.translate("hu", "scifact", translated.texts_for("scifact", [case], SCIFACT), "fake", tm)
+    tm.update("Fever study", rejected=True)
+    messages = []
+    assert translated.translate("hu", "scifact", translated.texts_for("scifact", [case], SCIFACT), "fake", tm, messages.append) == 0
+    assert any("1 rejected" in m for m in messages)
+    with pytest.raises(translated.MissingTranslations, match="rejected"): translated.build("hu", "scifact", SCIFACT, [case], tm)
+    tm.update("Fever study", tgt="Lázvizsgálat", reviewed=True)
+    (built,) = translated.build("hu", "scifact", SCIFACT, [case], tm)
+    assert "Lázvizsgálat" in built.state
+
+@pytest.mark.parametrize("label,target,expected", [("close_ticket", "Jegy lezárása.", "jegy_lezárása"), ("close_ticket", '"jegy: lezárás, most"', "jegy_lezárás_most"),
+                                                   ("Review", " Felülvizsgálat; ", "Felülvizsgálat"), ("Review", "'Átnézés.'", "Átnézés")])
+def test_localize_label_punctuation(label, target, expected):
+    assert translated.localize_label(label, target) == expected

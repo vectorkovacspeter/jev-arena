@@ -23,9 +23,10 @@ DEFAULT_ENGINE = "opus-mt"
 TRIVIAL_RUBRICS = ("", "{}", "[]", "null")
 
 class MissingTranslations(ValueError):
-    def __init__(self, n: int, slot_id: str = ""):
-        super().__init__(f"{slot_id}: {n} texts have no translation yet (run translate)")
-        self.n = n
+    def __init__(self, n: int, slot_id: str = "", rejected: int = 0):
+        note = f"; {rejected} were rejected in review: fix them with review or tm import" if rejected else ""
+        super().__init__(f"{slot_id}: {n} texts have no usable translation yet (run translate{note})")
+        self.n, self.rejected = n, rejected
 
 class EnglishMissing(Unavailable, FileNotFoundError):
     """The English pack this slot translates is not prepared."""
@@ -72,19 +73,39 @@ def _json_state(state: str):
     except ValueError: return None
     return value if isinstance(value, (dict, list)) else None
 
-def _prose(value: str) -> bool:
-    return bool(re.search(r"[A-Za-z]", value)) and bool(re.search(r"\s", value.strip()))
+# JSON states (JevBench): keys stay; each string value is a label id (-> its localized label), code-like (kept and
+# recorded in provenance["untranslated_json_values"]) or natural language (translated through the TM).
+_CODE_TOKEN = re.compile(r"\d|^[^\W\d_]*[_-][\w-]*$")
 
-def _json_leaves(value) -> Iterable[str]:
+def _code_token(token: str) -> bool:
+    letters = re.findall(r"[^\W\d_]", token)
+    return (not letters or bool(_CODE_TOKEN.search(token)) or (len(letters) >= 2 and token.isupper())
+            or (len(letters) == 1 and token.strip(".,;:!?()[]'\"").isupper()))
+
+def json_value_kind(value: str, label_ids) -> str:
+    """'label' (a choice label id), 'text' (translate) or 'keep' (code-like or otherwise not safely translatable)."""
+    if value in label_ids: return "label"
+    tokens = value.split()
+    if not tokens: return "keep"
+    if len(tokens) == 1:
+        word = tokens[0]
+        return "text" if word.isalpha() and word.islower() else "keep"   # 'overdue' yes; 'ORD4711', 'escalate_to_manager', 'Alice' no
+    # Natural language unless every token is code-like ('ORD 4711 A'); a sentence that mentions a number is still prose.
+    return "keep" if all(_code_token(t) for t in tokens) else "text"
+
+def _json_strings(value) -> Iterable[str]:
     if isinstance(value, dict): value = list(value.values())
     if isinstance(value, list):
-        for item in value: yield from _json_leaves(item)
-    elif isinstance(value, str) and _prose(value): yield value
+        for item in value: yield from _json_strings(item)
+    elif isinstance(value, str): yield value
 
-def _json_map(value, tr):
-    if isinstance(value, dict): return {k: _json_map(v, tr) for k, v in value.items()}
-    if isinstance(value, list): return [_json_map(v, tr) for v in value]
-    return tr(value) if isinstance(value, str) and _prose(value) else value
+def _json_map(value, convert):
+    if isinstance(value, dict): return {k: _json_map(v, convert) for k, v in value.items()}
+    if isinstance(value, list): return [_json_map(v, convert) for v in value]
+    return convert(value) if isinstance(value, str) else value
+
+def _choice_ids(case: Case) -> set[str]:
+    return set(case.question.labels) if case.question.kind == "choice" else set()
 
 def label_source(label: str) -> str:
     """Snake-case ids are translated as words: 'escalate_to_manager' -> 'escalate to manager'."""
@@ -94,10 +115,12 @@ def translatable_label(label: str) -> bool:
     """Codes such as 'P1', 'A' or 'SEV2' stay as they are; words and snake-case ids are translated."""
     return len(re.findall(r"[^\W\d_]", label)) >= 2 and not re.search(r"\d", label) and not label.isupper()
 
+EDGE_PUNCTUATION = ".,;:'\""
+
 def localize_label(label: str, target: str) -> str:
-    target = target.strip()
-    if not label.rstrip().endswith("."): target = target.rstrip(".").strip()
-    if "_" in label and " " not in label: target = re.sub(r"\s+", "_", target.lower())
+    """Strip edge punctuation (.,;:'" and spaces); snake-case ids become lowercase_with_underscores, internal punctuation included."""
+    target = target.strip().strip(EDGE_PUNCTUATION + " ").strip()
+    if "_" in label and " " not in label: target = re.sub(r"[\s.,;:'\"_]+", "_", target.lower()).strip("_")
     return target
 
 def _native_labels(slot: Slot, case: Case) -> bool:
@@ -112,7 +135,8 @@ def _criteria_texts(case: Case) -> list[str]:
 def _units(slot_id: str, slot: Slot, case: Case) -> list[str]:
     out = []
     if slot.state: out += list(_state_fields(slot_id, slot, case).values())
-    elif (value := _json_state(case.state)) is not None: out += list(_json_leaves(value))
+    elif (value := _json_state(case.state)) is not None:
+        out += [v for v in _json_strings(value) if json_value_kind(v, _choice_ids(case)) == "text"]
     else: out.append(case.state)
     if not slot.question: out.append(case.question.text)
     out += _criteria_texts(case)
@@ -120,9 +144,8 @@ def _units(slot_id: str, slot: Slot, case: Case) -> list[str]:
     if _native_labels(slot, case): out += [label_source(label) for label in case.question.labels if translatable_label(label)]
     return out
 
-def texts_for(slot_id: str, english_cases: list[Case], slot: Slot | None = None) -> list[str]:
-    """Unique non-empty source texts the slot needs, in first-seen order. `slot` defaults to the en slot of the same id."""
-    slot = slot or load_slots("en")[slot_id]
+def texts_for(slot_id: str, english_cases: list[Case], slot: Slot) -> list[str]:
+    """Unique non-empty source texts the slot needs, in first-seen order."""
     seen: dict[str, None] = {}
     for case in english_cases:
         for text in _units(slot_id, slot, case):
@@ -141,13 +164,20 @@ def translate(lang: str, slot_id: str, texts: list[str], engine_name: str, tm: T
     if isinstance(engine, engines.ManualEngine):
         engine.pending_path = memory.pending_path(lang, slot_id)
         engine.translate(missing, "en", lang)  # raises ManualPending
-    added = 0
+    rejected = set(tm.rejected(missing))
+    if rejected:  # the same engine would return the same text: rejected rows wait for an edit or tm import
+        say(f"{slot_id}: {len(rejected)} rejected translations need review or tm import")
+        missing = [t for t in missing if t not in rejected]
+    added = empty = 0
     for i in range(0, len(missing), batch):
         chunk = missing[i:i + batch]
         out = engine.translate(chunk, "en", lang)
         if len(out) != len(chunk): raise engines.EngineError(f"{engine.name}: expected {len(chunk)} translations, got {len(out)}")
-        added += tm.put_many({"src": s, "tgt": t, "engine": engine.name, "model": engine.model, "revision": engine.revision} for s, t in zip(chunk, out))
+        pairs = [(s, t) for s, t in zip(chunk, out) if isinstance(t, str) and t.strip()]
+        empty += len(chunk) - len(pairs)
+        added += tm.put_many({"src": s, "tgt": t, "engine": engine.name, "model": engine.model, "revision": engine.revision} for s, t in pairs)
         say(f"{slot_id}: {min(i + batch, len(missing))}/{len(missing)} translated")
+    if empty: say(f"{slot_id}: {engine.name} returned {empty} empty translations; they stay missing")
     return added
 
 # --- build ----------------------------------------------------------------------
@@ -156,18 +186,21 @@ def _norm(label: str) -> str:
     return re.sub(r"[\s_]+", " ", label).strip().casefold()
 
 def build(lang: str, slot_id: str, slot: Slot, english_cases: list[Case], tm: TranslationMemory) -> list[Case]:
-    absent = tm.missing(texts_for(slot_id, english_cases, slot))
-    if absent: raise MissingTranslations(len(absent), slot_id)
+    texts = texts_for(slot_id, english_cases, slot)
+    absent = tm.missing(texts)
+    if absent: raise MissingTranslations(len(absent), slot_id, rejected=len(tm.rejected(absent)))
     tm_sha = tm.sha256()
     group = label_group(lang, slot.label_group) if slot.label_group else None
     question_text = prompt(lang, slot.question) if slot.question else None
-    out = []
+    out, collisions = [], []
     for case in english_cases:
         used: list[str] = []
         def tr(text: str) -> str:
             if not text or not text.strip(): return text
+            target = tm.get(text)
+            if not target or not target.strip(): raise MissingTranslations(1, slot_id)
             used.append(text)
-            return tm.get(text)
+            return target
         q = case.question
         if q.kind != "choice": label_map = {label: label for label in q.labels}
         elif group is not None:
@@ -178,9 +211,18 @@ def build(lang: str, slot_id: str, slot: Slot, english_cases: list[Case], tm: Tr
         values = list(label_map.values())
         dupes = [k for k, n in Counter(_norm(v) for v in values).items() if n > 1]
         if dupes or any(not v for v in values):
-            raise LabelCollision(f"{case.id}: translated labels collide or are empty: {label_map} (fix them with review or tm import)")
+            collisions.append(f"{case.id}: {label_map}")
+            continue
         if slot.state: state = prompt(lang, slot.state, **{k: tr(v) for k, v in _state_fields(slot_id, slot, case).items()})
-        elif (value := _json_state(case.state)) is not None: state = json.dumps(_json_map(value, tr), ensure_ascii=False)
+        elif (value := _json_state(case.state)) is not None:
+            kept: list[str] = []
+            def convert(v: str) -> str:
+                kind = json_value_kind(v, label_map if q.kind == "choice" else ())
+                if kind == "label": return label_map[v]
+                if kind == "text": return tr(v)
+                if re.search(r"[^\W\d_]", v) and v not in kept: kept.append(v)
+                return v
+            state = json.dumps(_json_map(value, convert), ensure_ascii=False)
         else: state = tr(case.state)
         text = question_text if question_text is not None else tr(q.text)
         criteria = q.criteria
@@ -198,6 +240,8 @@ def build(lang: str, slot_id: str, slot: Slot, english_cases: list[Case], tm: Tr
             native = {"type": q.kind, "instructions": text}
             if "criteria" in case.provenance["native_question"]: native["criteria"] = criteria
             provenance["native_question"] = native
+        if (value := _json_state(case.state)) is not None and not slot.state: provenance["untranslated_json_values"] = kept
+        if slot.needs_review: provenance["needs_review"] = True
         provenance |= {"slot": slot_id, "translated_from": case.id, "engine": sorted({r["engine"] for r in rows}), "tm_sha256": tm_sha,
                        "reviewed_fraction": round(sum(r["reviewed"] for r in rows) / len(rows), 4) if rows else 1.0}
         if q.kind == "choice": provenance["label_ids"] = {v: k for k, v in label_map.items()}
@@ -207,6 +251,9 @@ def build(lang: str, slot_id: str, slot: Slot, english_cases: list[Case], tm: Tr
             "gold": remap(case.gold), "acceptable": [remap(a) for a in case.acceptable],
             "reference_probs": {remap(k): v for k, v in case.reference_probs.items()} if case.reference_probs is not None else None,
             "provenance": provenance}))
+    if collisions:
+        raise LabelCollision(f"{slot_id}: translated labels collide or are empty in {len(collisions)} cases (fix them with review or tm import): "
+                             + "; ".join(collisions))
     return [Case.model_validate(c.model_dump()) for c in out]  # re-validate labels and gold
 
 def prepare_slot(lang: str, slot_id: str, slot: Slot, progress: Callable[[str], None] | None = None) -> list[Case]:

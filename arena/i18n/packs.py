@@ -10,7 +10,7 @@ from typing import Callable
 from arena.config import DATASETS, digest, write_json
 from arena.contracts import Case
 from arena.i18n.datasets import Slot, load_slots
-from arena.i18n.engines import Unavailable
+from arena.i18n.engines import EngineError, Unavailable
 
 # English pack name -> file name, one file per English pack.
 PACK_FILES = {"JevBench public": "jevbench", "Typed decisions": "typed", "Classification": "classification",
@@ -63,8 +63,8 @@ def prepare_language(lang: str, progress: Callable[[str], None] | None = None, o
     """Build the language's native and translated slots into one file per English pack.
 
     Generated slots need no files: they are produced on demand from prompts.yaml. Translated slots need the
-    English packs; a slot that cannot be built now (English not prepared, engine unavailable, manual translations
-    pending) is reported and skipped. Rebuilding a subset of slots keeps the cases of the other slots already in a
+    English packs; a translated slot that cannot be built now (English not prepared, engine unavailable or failing,
+    manual translations pending, missing or colliding translations) is reported and skipped. Rebuilding a subset of slots keeps the cases of the other slots already in a
     pack file. Returns {pack_file: cases written}.
     """
     if lang == "en": raise ValueError("English packs are built by arena.importers")
@@ -78,6 +78,9 @@ def prepare_language(lang: str, progress: Callable[[str], None] | None = None, o
         if slot.pack not in PACK_FILES: raise ValueError(f"{slot_id}: no pack file for pack {slot.pack!r}")
         try: cases = _build(lang, slot_id, slot, say)
         except (NotImplementedError, Unavailable) as e: say(f"{slot_id}: skipped ({e})"); continue
+        except (EngineError, ValueError) as e:  # LabelCollision, MissingTranslations, engine failures: the other slots still build
+            if slot.source != "translated": raise
+            say(f"{slot_id}: failed, skipped ({type(e).__name__}: {e})"); continue
         if slot.expected() is not None and len(cases) != slot.expected():
             raise ValueError(f"{slot_id}: expected {slot.expected()}, got {len(cases)}")
         built[PACK_FILES[slot.pack]][slot_id] = cases

@@ -41,6 +41,7 @@ class Slot(BaseModel):
     state: str | None = None                       # prompts.yaml key for a multi-field state
     licence: str = ""
     engine: str | None = None                      # translated: default engine
+    needs_review: bool = False                     # translated: machine output must be reviewed before results are trusted (recorded in provenance)
 
     @model_validator(mode="after")
     def required_fields(self):
