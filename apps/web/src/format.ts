@@ -1,6 +1,15 @@
 type N = number | null | undefined;
 const DASH = "—";
-const nf = (locale: string, o: Intl.NumberFormatOptions) => new Intl.NumberFormat(locale, o);
+/** Returns the tag if it is a valid BCP 47 tag, otherwise "en", so formatters never throw during render. */
+export const safeLocale = (tag: string): string => {
+  try {
+    Intl.getCanonicalLocales(tag);
+    return tag;
+  } catch {
+    return "en";
+  }
+};
+const nf = (locale: string, o: Intl.NumberFormatOptions) => new Intl.NumberFormat(safeLocale(locale), o);
 
 export const number = (locale: string, v: N, maxDigits = 0) =>
   v == null ? DASH : nf(locale, { maximumFractionDigits: maxDigits }).format(v);
@@ -24,4 +33,4 @@ export const duration = (locale: string, ms: N) => {
 };
 
 export const shortDate = (locale: string, epochSeconds: number) =>
-  new Date(epochSeconds * 1000).toLocaleDateString(locale, { month: "short", day: "numeric" });
+  new Date(epochSeconds * 1000).toLocaleDateString(safeLocale(locale), { month: "short", day: "numeric" });

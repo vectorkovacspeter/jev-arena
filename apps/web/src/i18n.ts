@@ -15,6 +15,11 @@ export const bundledLocales: LocaleInfo[] = Object.values(metas)
 export const i18n = i18next;
 
 export async function initI18n(language: string) {
+  if (i18next.isInitialized) {
+    await i18next.changeLanguage(language);
+    document.documentElement.lang = language;
+    return;
+  }
   await i18next.use(initReactI18next).init({
     resources, lng: language, fallbackLng: "en", returnEmptyString: false,
     interpolation: { escapeValue: false }, // React escapes.
@@ -22,9 +27,9 @@ export async function initI18n(language: string) {
   document.documentElement.lang = language;
 }
 
-export async function setLanguage(code: string) {
-  await i18next.changeLanguage(code);
-  document.documentElement.lang = code;
+export async function setLanguage(language: string) {
+  await i18next.changeLanguage(language);
+  document.documentElement.lang = language;
 }
 
 export function useFormat() {
