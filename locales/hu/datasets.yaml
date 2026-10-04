@@ -9,6 +9,7 @@ slots:
     sample: 231
     engine: opus-mt
     needs_review: true   # JSON states: code-like values stay English (provenance.untranslated_json_values); review before trusting
+    licence: MIT (translation of JevBench public; repository LICENSE)
   typed-decisions:
     source: translated
     pack: Typed decisions
@@ -16,6 +17,7 @@ slots:
     sample: 2000
     engine: opus-mt
     needs_review: true   # native label sets and criteria are machine-translated; review before trusting
+    licence: Apache-2.0 (translation of LocalLLaMA/typed-decisions; HF card metadata)
   sst2:
     source: native
     pack: Classification
@@ -51,6 +53,7 @@ slots:
     label_group: banking77
     question: importers.banking77
     engine: opus-mt
+    licence: CC-BY-4.0 (translation of PolyAI BANKING77)
   xnli:
     source: native
     pack: Multilingual
@@ -149,6 +152,7 @@ slots:
     question: importers.scifact
     state: importers.scifact_state
     engine: opus-mt
+    licence: CC-BY-SA-4.0 (translation of BeIR/scifact; HF card metadata)
   fresh:
     source: generated
     pack: Arena Fresh

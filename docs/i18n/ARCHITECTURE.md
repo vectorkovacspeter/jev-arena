@@ -53,6 +53,29 @@ Phase 1 routes all number and duration formatting through `Intl`, which changed 
 - Astra verdicts are capitalised ("Correct").
 - Prediction status reads "transport error".
 
+## Test data flow
+
+Test data is built per language. English paths and bytes are unchanged (golden digests in `tests/test_english_baseline.py`); every other language lives in `.arena/datasets/<lang>/`.
+
+```
+locales/<lang>/prompts.yaml ──> generators (arena/fresh.py, arena/episodes.py, lang=...) ──> generated cases (on demand)
+locales/<lang>/datasets.yaml ─┬> arena/i18n/native.py      (pinned HF files, stratified sample)        ─┐
+                              └> arena/i18n/translated.py  (English pack + engines + memory)             ├> arena/i18n/packs.py ──> .arena/datasets/<lang>/<pack>-cases.jsonl + manifest
+                                      engines.py: manual, opus-mt, deepl, google; memory.py: .arena/translations/<lang>/<slot>.jsonl ┘
+arena/suites.py: suite(preset, lang), inventory(lang)  ──>  arena/controller.py (run) ──> manifest["language"]
+```
+
+- **Prompts.** `arena/i18n/prompts.py` loads `prompts.yaml` strictly: `prompt(lang, key, **params)` uses `str.format`, and `labels(lang, group)` returns stable id to localized label. A missing key raises `KeyError("<lang>:<key>")`; there is no English fallback.
+- **Generators.** `fresh()`, `robustness()` and the episodes take `lang`. The logic and random draws are shared, so golds and proof fields are identical across languages; only strings come from `prompts.yaml`. Choice cases carry `language`, an id prefix `<lang>:` and `provenance["label_ids"] = {localized label: stable id}`. Binary labels stay `no`/`yes` and score labels `0`..`4`.
+- **Datasets.** `arena/i18n/datasets.py` validates `datasets.yaml` (slot sources `native`, `translated`, `generated`, `missing`) and computes `expected_counts(lang)`.
+- **Native builder.** `arena/i18n/native.py` downloads the pinned files (no dataset scripts), pools and filters rows, samples with the same stratified algorithm as `arena/importers.py` and builds localized choice cases.
+- **Translated builder.** `arena/i18n/translated.py` reads the prepared English pack, collects the unique texts, translates the missing ones through an engine into the translation memory, and rebuilds the cases (JSON states: label ids localized, code-like values kept with provenance `untranslated_json_values`, prose translated; `needs_review` recorded in provenance). Rejected memory rows count as missing.
+- **Packs.** `arena/i18n/packs.py` `prepare_language(lang, progress, only=None)` builds every non-missing slot, skips translated slots that cannot be built and reports them, and writes per-pack files and manifests with the language, revisions and licences. `arena/setup.py` runs it after the English datasets for the selected language.
+- **Suite.** `arena/suites.py` `suite(preset, lang)` assembles Smoke (36 generated cases), Demo (Smoke plus the first 84 JevBench) and Full from the language's packs and the expected counts. `inventory(lang)` returns the per-slot readiness shown in Setup.
+- **Run language.** The controller records `manifest["language"]` at run start (runs without it are English). Resumed and saved runs use it for case generation and reports.
+- **Episode id mapping.** Warehouse and Tickets show localized choices to the model but keep stable ids internally: the episode maps the selected label back with `provenance["label_ids"]` and records `answer_id` in the trace, so transitions and scoring never depend on the language.
+- **ABCD.** A separate frozen assessment with its own runner; it is `missing` for non-English languages.
+
 ## Later phases
 
-Reports, prompts, dataset mapping, language-aware suites and translation engines are planned in the [design spec](../superpowers/specs/2026-10-04-i18n-design.md). Those phases will extend this document.
+Reports and further translation workflows are planned in the [design spec](../superpowers/specs/2026-10-04-i18n-design.md). Those phases will extend this document.

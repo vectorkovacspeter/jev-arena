@@ -105,3 +105,29 @@ Topics (`operations.topics.*`) and directions (`operations.directions.*`) are tr
 | policy template | szabályzatsablon |
 | human validation | emberi validálás |
 | ranking score | rangsorolási pontszám |
+
+## Test data (locales/hu/prompts.yaml)
+
+| English | Hungarian |
+|---|---|
+| slot (dataset slot) | tétel |
+| Billing / Engineering / Success (fresh queues) | Számlázás / Műszaki / Ügyfélsiker |
+| Proceed / Review / Stop | Folytatás / Felülvizsgálat / Leállítás |
+| Supported / Contradicted / Insufficient evidence | Alátámasztott / Ellentmondó / Nincs elég bizonyíték |
+| Reader / Editor | Olvasó / Szerkesztő |
+| Request approval / Secure review | Jóváhagyás kérése / Biztonsági felülvizsgálat |
+| Intake / Archive | Iktatás / Archívum |
+| Relevant / Not relevant | Releváns / Nem releváns |
+| Active / Inactive / Unknown | Aktív / Inaktív / Ismeretlen |
+| Critical / Warning / Healthy | Kritikus / Figyelmeztetés / Rendben |
+| yes / no (fresh state values) | igen / nem |
+| north / east / south / west | észak / kelet / dél / nyugat |
+| ticket | hibajegy |
+| ticket topics: payment / service outage / onboarding | fizetés / szolgáltatáskiesés / bevezetés |
+| restricted account | korlátozott fiók |
+| sentiment: negative / positive | negatív / pozitív |
+| NLI: entailment / neutral / contradiction | következik / semleges / ellentmond |
+| policy (in test text) | szabályzat |
+| distractor / injection (robustness) | zavaró / beinjektált (nem megbízható melléklet) |
+
+Label values inside policy text must match `labels.<group>` exactly; the model has to output them. Machine-readable ids such as intents are lowercase with underscores (`kártya_aktiválása`).

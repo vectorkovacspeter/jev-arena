@@ -91,6 +91,15 @@ Run data, source datasets, weights and logs live under ignored `.arena/`. Use sa
 
 The interface is available in English and Hungarian (beta). Choose the language in the header; the choice is saved in `.arena/settings.json`. To add a language, see [Contributing translations](docs/i18n/CONTRIBUTING-TRANSLATIONS.md).
 
+Hungarian test data is available too, so models can be run on Hungarian questions. Choose Hungarian in the header, then:
+
+```bash
+uv run --frozen python -m arena.setup --models uniform --skip-workers   # or Setup > Prepare selected
+uv run --frozen python -m arena.i18n translate --lang hu --slot banking77 --dry-run   # translated slots need an engine
+```
+
+Smoke works immediately (generated fixtures); Full needs every non-missing slot. See [dataset slots](docs/i18n/DATASET-SLOTS.md) and [CONTRIBUTING-TRANSLATIONS.md](docs/i18n/CONTRIBUTING-TRANSLATIONS.md).
+
 ## License
 
 Arena's original code is [MIT licensed](LICENSE). Weights, datasets and reference runtimes retain their publishers' terms; see [attribution](THIRD_PARTY.md) and [bundled notices](THIRD-PARTY-LICENSES.txt). Jev Arena is independent and unaffiliated with TypeSafe or the model authors.
