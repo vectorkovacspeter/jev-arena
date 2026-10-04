@@ -16,48 +16,48 @@ fresh:
     policy_word: "Szabályzat:"
   family0:
     topics: {"payment": "fizetés", "outage": "kiesés", "onboarding": "bevezetés"}
-    state: "Hibajegy {entity}: téma={topic}; szolgáltatás nem elérhető={unavailable}; érintett csapatok={n}. Szabályzat: kizárólag a téma mező alapján irányíts: a fizetés a Számlázás sorba kerül, a kiesés a Műszaki sorba, a bevezetés az Ügyfélsiker sorba. A szolgáltatás elérhetősége nem változtat a soron, csak a sürgősséget határozza meg. A hibajegy akkor sürgős, ha a szolgáltatás nem elérhető. A hatás megegyezik az érintett csapatok számával."
+    state: "Hibajegy {entity}: téma={topic}; szolgáltatás nem elérhető={unavailable}; érintett csapatok={n}. Szabályzat: kizárólag a téma mező alapján irányíts: a fizetés témájú hibajegy a Számlázás sorba kerül, a kiesés témájú a Műszaki sorba, a bevezetés témájú az Ügyfélsiker sorba. A szolgáltatás elérhetősége nem változtat a soron, csak a sürgősséget határozza meg. A hibajegy akkor és csak akkor sürgős, ha a szolgáltatás nem elérhető. A hatás megegyezik az érintett csapatok számával."
     choice: "Melyik sorhoz tartozik a hibajegy?"
-    binary: "Sürgős a hibajegy a szabályzat szerint?"
+    binary: "Sürgős-e a hibajegy a szabályzat szerint?"
     ordinal: "Mekkora a hatás szintje?"
   family1:
     state: "Kérés {entity}: jogosult={eligible}; aláírt jóváhagyás={approved}; hiányzó ellenőrzések={n}. Szabályzat: ha a kérés nem jogosult, a teendő Leállítás; különben, ha nincs aláírt jóváhagyás, Felülvizsgálat; minden más esetben Folytatás. A végrehajtás tilos, kivéve, ha a kérés jogosult, és aláírt jóváhagyása is van. Az eltérés megegyezik a hiányzó ellenőrzések számával."
     choice: "Milyen teendő következik a szabályzatból?"
-    binary: "Tilos a végrehajtás?"
+    binary: "Tilos-e a végrehajtás?"
     ordinal: "Mekkora az eltérés szintje?"
   family2:
-    status: {"opened": "kinyitott", "closed": "bezárt"}
+    status: {"opened": "megnyílt", "closed": "bezárt"}
     state: "Forrásrekord {entity}: 'A létesítmény kedden {stated}. Emeleteinek száma: {n}.' Javasolt válasz: 'A létesítmény kedden {claim}.' Értékelés: Alátámasztott, ha a válasz egyezik a forrással, Ellentmondó, ha az ellenkező állapotot állítja. A bizonyítéki lefedettség Alátámasztott esetén 4, Ellentmondó esetén 0."
     choice: "Hogyan viszonyul a válasz a forráshoz?"
-    binary: "Tartalmaz a javasolt válasz a forrás által alá nem támasztott állapotállítást?"
+    binary: "Tartalmaz-e a javasolt válasz a forrás által alá nem támasztott állapotállítást?"
     ordinal: "Mekkora a bizonyítéki lefedettség szintje?"
   family3:
     access: {"read": "olvasási", "write": "írási"}
     state: "Feladat {entity}: {desired} hozzáférés szükséges. Elérhető eszközök: az Olvasó jóváhagyás nélkül olvashat; a Szerkesztő olvashat és írhat, de jóváhagyást igényel. Jóváhagyás megvan={approval}. Szabályzat: olvasáshoz az Olvasó a választandó, jóváhagyott íráshoz a Szerkesztő, minden más esetben Jóváhagyás kérése. Jóváhagyás csak íráshoz kell; az Olvasó eszközzel végzett olvasáshoz soha nem kell jóváhagyás. Az Olvasó alkalmassága: olvasáshoz 4, íráshoz 0."
     choice: "Melyik műveletet kell választani?"
-    binary: "Igényel ez a feladat olyan jóváhagyást, amely nincs meg?"
+    binary: "Igényel-e ez a feladat olyan jóváhagyást, amely nincs meg?"
     ordinal: "Mennyire alkalmas az Olvasó erre a feladatra?"
   family4:
     state: "Dokumentum {entity}: bizalmas={confidential}; aláírás megvan={signed}; a 4 kötelező mezőből kitöltve: {n}. Szabályzat: a bizalmas tételek helye a Biztonsági felülvizsgálat; a többi aláíratlan tétel helye az Iktatás; minden egyéb tétel helye az Archívum. Az aláírás kötelező. A teljesség a kitöltött mezők száma."
     choice: "Hová kerüljön a dokumentum?"
-    binary: "Hiányzik a kötelező aláírás?"
+    binary: "Hiányzik-e a kötelező aláírás?"
     ordinal: "Mekkora a teljesség szintje?"
   family5:
     products: {"Atlas": "Atlas", "Boreal": "Boreal"}  # product names, unchanged
-    state: "Lekérdezés: mennyi a garancia időtartama {product} esetén? Dokumentum {entity}: '{docproduct} esetén a garancia {n} év.' Értékelés: csak akkor Releváns, ha a dokumentum pontosan erre a termékre adja meg a garanciát; a relevancia pontos egyezésnél 4, különben 0."
-    choice: "Releváns ez a dokumentum a lekérdezéshez?"
-    binary: "Tartalmazza a dokumentum a pontos lekérdezésre adott választ?"
+    state: "Lekérdezés: mennyi a garancia időtartama {product} esetén? Dokumentum {entity}: '{docproduct} esetén a garancia {n} év.' Értékelés: csak akkor Releváns, ha a dokumentum pontosan a lekérdezett termékre adja meg a garanciát; a relevancia pontos egyezésnél 4, különben 0."
+    choice: "Releváns-e ez a dokumentum a lekérdezés szempontjából?"
+    binary: "Tartalmazza-e a dokumentum a választ pontosan erre a lekérdezésre?"
     ordinal: "Mekkora a relevancia szintje?"
   family6:
     status: {"active": "aktív", "inactive": "inaktív"}
     state: "Fiók {entity}: az A rekord szerint {rec1}; a vele egyenrangú B rekord szerint {rec2}. Szabályzat: a közös állapotot csak akkor add meg, ha a két rekord egyezik; különben válaszd az Ismeretlen lehetőséget, és halaszd el a döntést. Az indokolt bizonyosság egyezés esetén 4, ellentmondás esetén 0."
     choice: "Milyen állapot indokolt?"
-    binary: "El kell halasztani ezt a döntést?"
+    binary: "El kell-e halasztani ezt a döntést?"
     ordinal: "Milyen bizonyossági szint indokolt?"
   family7:
     state: "Incidens {entity}: adatvesztés={data_loss}; szolgáltatásromlás={degraded}; értesítés elküldve={notified}. Szabályzat: adatvesztés esetén Kritikus (súlyosság 4); különben szolgáltatásromlás esetén Figyelmeztetés (súlyosság 2); különben Rendben (súlyosság 0). Akkor és csak akkor eszkalálj, ha Kritikus."
     choice: "Melyik incidensállapot érvényes?"
-    binary: "Eszkalálni kell ezt az incidenst?"
+    binary: "Eszkalálni kell-e ezt az incidenst?"
     ordinal: "Mekkora a súlyossági szint?"
 robustness:
   paraphrase_prefix: "A megadott szabályok alapján válaszolj erre a kérdésre: "
