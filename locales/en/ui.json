@@ -1,0 +1,26 @@
+{
+  "common": { "unavailable": "Unavailable", "notApplicable": "N/A", "loading": "Loading…", "dismiss": "Dismiss" },
+  "shell": {
+    "skipToContent": "Skip to content",
+    "expandNavigation": "Expand navigation",
+    "collapseNavigation": "Collapse navigation",
+    "presenter": "Presenter",
+    "exitPresenter": "Exit presenter",
+    "exitPresenterTitle": "Exit presenter (Esc)",
+    "presenterTitle": "Presenter mode",
+    "workspace": "WORKSPACE",
+    "localWorkspace": "Local workspace",
+    "homeLabel": "The AI Automators — {{appName}} home",
+    "workspaceLabel": "{{appName}} workspace",
+    "navigationLabel": "{{appName}} navigation",
+    "language": "Language",
+    "beta": "beta",
+    "englishOnly": "This section is available in English only."
+  },
+  "nav": {
+    "arena": "Overview", "results": "Results", "cases": "Case explorer", "abcd": "Support conversations",
+    "models": "Model guide", "takeaways": "What we learned", "sources": "Tests & scoring",
+    "chart": "Accuracy and speed", "replay": "Workflow replays", "run": "Run a new test", "setup": "Setup",
+    "previousView": "previous view"
+  }
+}

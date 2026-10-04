@@ -1,0 +1,26 @@
+{
+  "common": { "unavailable": "Nem elérhető", "notApplicable": "N/A", "loading": "Betöltés…", "dismiss": "Bezárás" },
+  "shell": {
+    "skipToContent": "Ugrás a tartalomra",
+    "expandNavigation": "Navigáció kinyitása",
+    "collapseNavigation": "Navigáció becsukása",
+    "presenter": "Bemutató",
+    "exitPresenter": "Kilépés a bemutatóból",
+    "exitPresenterTitle": "Kilépés a bemutatóból (Esc)",
+    "presenterTitle": "Bemutató mód",
+    "workspace": "MUNKATERÜLET",
+    "localWorkspace": "Helyi munkaterület",
+    "homeLabel": "The AI Automators — {{appName}} kezdőlap",
+    "workspaceLabel": "{{appName}} munkaterület",
+    "navigationLabel": "{{appName}} navigáció",
+    "language": "Nyelv",
+    "beta": "béta",
+    "englishOnly": "Ez a rész csak angolul érhető el."
+  },
+  "nav": {
+    "arena": "Áttekintés", "results": "Eredmények", "cases": "Esetböngésző", "abcd": "Ügyfélszolgálati beszélgetések",
+    "models": "Modellkalauz", "takeaways": "Tanulságok", "sources": "Tesztek és pontozás",
+    "chart": "Pontosság és sebesség", "replay": "Munkafolyamat-visszajátszás", "run": "Új teszt futtatása", "setup": "Beállítás",
+    "previousView": "előző nézet"
+  }
+}
