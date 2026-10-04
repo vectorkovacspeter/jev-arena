@@ -12,8 +12,13 @@ def main(argv=None):
     n.add_argument("code"); n.add_argument("--name", required=True); n.add_argument("--native", required=True)
     args = parser.parse_args(argv)
     if args.command == "new-language":
-        print(f"Created {check.new_language(args.code, args.name, args.native)}. Next: translate ui.json, then run check.")
-        return 0
+        try:
+            path = check.new_language(args.code, args.name, args.native)
+            print(f"Created {path}. Next: translate ui.json, then run check.")
+            return 0
+        except (FileExistsError, ValueError) as e:
+            print(f"Error: {e}")
+            return 1
     issues = check.check(args.lang)
     for i in issues:
         if i.level == "error" or not args.quiet: print(f"{i.level.upper():7} {i.lang}/{i.file} {i.key}: {i.message}")

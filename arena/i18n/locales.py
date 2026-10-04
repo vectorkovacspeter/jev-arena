@@ -9,8 +9,12 @@ PLURAL_SUFFIXES = ("_zero", "_one", "_two", "_few", "_many", "_other")
 def discover(root: Path = LOCALES) -> dict[str, dict]:
     out = {}
     for meta in sorted(root.glob("*/locale.json")):
-        data = json.loads(meta.read_text(encoding="utf-8"))
-        out[data["code"]] = data
+        try:
+            data = json.loads(meta.read_text(encoding="utf-8"))
+            if isinstance(data, dict) and "code" in data:
+                out[data["code"]] = data
+        except (FileNotFoundError, json.JSONDecodeError, UnicodeDecodeError):
+            pass
     return out
 
 def load_catalog(code: str, name: str = "ui", root: Path = LOCALES) -> dict:
