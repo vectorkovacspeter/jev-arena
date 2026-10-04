@@ -128,6 +128,50 @@ def _check_prompts(code: str, name: str, root: Path) -> list[Issue]:
         if dupes: out.append(Issue("error", code, file, f"labels.{group}", f"duplicate localized labels {dupes}"))
     return out
 
+DATASETS_FILE = "datasets.yaml"
+
+def _prompt_keys(tree: dict) -> set[str]:
+    return {k for k, v in _yaml_leaves(tree)[0].items() if isinstance(v, str)}
+
+def _check_datasets(code: str, root: Path) -> list[Issue]:
+    """Validate <code>/datasets.yaml against the slot schema and en; only when en has a datasets.yaml."""
+    from pydantic import ValidationError
+    from arena.i18n.datasets import Slot
+    file = DATASETS_FILE
+    en_path, path = root / "en" / file, root / code / file
+    if not en_path.exists(): return []
+    if not path.exists(): return [Issue("warning", code, file, "", f"{file} missing (no dataset slots in this language)")]
+    def slots_of(p: Path):
+        data = _load_yaml(p)
+        if not isinstance(data, dict) or not isinstance(data.get("slots"), dict) or set(data) != {"slots"}:
+            raise ValueError("must be a mapping with a single 'slots' mapping")
+        return data["slots"]
+    try: en_slots = slots_of(en_path)
+    except (yaml.YAMLError, UnicodeDecodeError, OSError, ValueError) as e: return [Issue("error", code, file, "", f"cannot read en datasets: {e}")]
+    try: slots = slots_of(path)
+    except (yaml.YAMLError, UnicodeDecodeError, OSError, ValueError) as e: return [Issue("error", code, file, "", f"cannot read datasets: {e}")]
+    prompts_tree = {}
+    if (root / "en" / "prompts.yaml").exists():
+        try: prompts_tree = _load_yaml(root / "en" / "prompts.yaml") or {}
+        except (yaml.YAMLError, UnicodeDecodeError, OSError): prompts_tree = {}
+    if not isinstance(prompts_tree, dict): prompts_tree = {}
+    groups, keys = _label_groups(prompts_tree), _prompt_keys(prompts_tree)
+    out = []
+    for slot_id, data in slots.items():
+        if slot_id not in en_slots: out.append(Issue("error", code, file, str(slot_id), "slot not in en")); continue
+        try: slot = Slot.model_validate(data)
+        except ValidationError as e:
+            out.append(Issue("error", code, file, str(slot_id), "; ".join(f"{'.'.join(map(str, x['loc'])) or 'slot'}: {x['msg']}" for x in e.errors()))); continue
+        en_pack = en_slots[slot_id].get("pack") if isinstance(en_slots[slot_id], dict) else None
+        if slot.pack != en_pack: out.append(Issue("error", code, file, f"{slot_id}.pack", f"pack {slot.pack!r} != en {en_pack!r}"))
+        if slot.label_group and slot.label_group not in groups: out.append(Issue("error", code, file, f"{slot_id}.label_group", f"unknown label group {slot.label_group!r}"))
+        for name in ("question", "state"):
+            key = getattr(slot, name)
+            if key and key not in keys: out.append(Issue("error", code, file, f"{slot_id}.{name}", f"unknown prompt key {key!r}"))
+    for slot_id in en_slots:
+        if slot_id not in slots: out.append(Issue("error", code, file, str(slot_id), "slot missing (declare source: missing with a reason)"))
+    return out
+
 def _prompt_summary(code: str, name: str, root: Path) -> str | None:
     source_tree, target_tree, _ = _prompt_state(code, name, root)
     if not source_tree: return None
@@ -151,6 +195,7 @@ def check(lang: str | None = None, root: Path | None = None) -> list[Issue]:
         out += _check_meta(code, root)
         for name in CATALOGS: out += _check_catalog(code, name, root)
         for name in PROMPT_CATALOGS: out += _check_prompts(code, name, root)
+        out += _check_datasets(code, root)
     return out
 
 def _blank(catalog: dict) -> dict:

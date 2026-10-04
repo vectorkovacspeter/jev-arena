@@ -1,0 +1,167 @@
+# Dataset slots for Hungarian. Native sources are pinned Hugging Face revisions (resolved 2026-10-04 with
+# HfApi().dataset_info(repo).sha); their text is downloaded from the original source and never committed.
+# Build: uv run --frozen python -m arena.i18n prepare --lang hu [--only native|translated|generated]
+slots:
+  jevbench:
+    source: translated
+    pack: JevBench public
+    family: JevBench
+    sample: 231
+    engine: opus-mt
+  typed-decisions:
+    source: translated
+    pack: Typed decisions
+    family: Typed decisions
+    sample: 2000
+    engine: opus-mt
+  sst2:
+    source: native
+    pack: Classification
+    family: HuSST
+    repo: NYTK/HuSST
+    revision: 82bdd5bf81e2ec6e318ca88cb1e8d62506aa43c3
+    files: [data/val.json]   # validation; the test split has no public labels
+    fields: {text: sentence, label: label, id: id}
+    sample: 500
+    drop_labels: [neutral]
+    label_group: sentiment
+    source_label_ids: {negative: negative, positive: positive}
+    question: importers.sst2
+    licence: CC-BY-SA-4.0 (HuSST GitHub LICENSE.md; HF card says BSD-2-Clause — treated as share-alike)
+  agnews:
+    source: native
+    pack: Classification
+    family: SIB-200
+    repo: Davlan/sib200
+    revision: 38977a667f6fc264d5c26ec57a01e16db040b358
+    config: hun_Latn
+    files: [data/hun_Latn/train.tsv, data/hun_Latn/dev.tsv, data/hun_Latn/test.tsv]   # all splits pooled
+    fields: {text: text, label: category, id: index_id}
+    sample: 500
+    label_group: sib_topics
+    question: importers.agnews
+    licence: CC-BY-SA-4.0 (HF card metadata; card text says "CC 4.0 Commercial")
+  banking77:
+    source: translated
+    pack: Classification
+    family: BANKING77
+    sample: 500
+    label_group: banking77
+    question: importers.banking77
+    engine: opus-mt
+  xnli:
+    source: native
+    pack: Multilingual
+    family: HuCommitmentBank
+    repo: NYTK/HuCommitmentBank
+    revision: 272bd2cd8518d52fb28e4bb9f858592af19d2ae2
+    files: [data/train.json, data/val.json]   # train+validation; the test split has no public labels
+    fields: {premise: premise, hypothesis: hypothesis, label: label, id: id}
+    sample: 100
+    label_group: nli
+    source_label_ids: {entailment: entailment, neutral: neutral, contradiction: contradiction}
+    question: importers.xnli
+    question_id: relation
+    state: importers.xnli_state
+    licence: CC-BY-SA-4.0 (HF card text and LICENSE.txt; no card metadata)
+  massive:
+    source: native
+    pack: Multilingual
+    family: MASSIVE
+    repo: AmazonScience/massive
+    revision: ed58ac423a2f4121720918bf5301577edce4ffd3   # parquet conversion (refs/convert/parquet), as the English importer
+    config: hu-HU
+    files: [hu-HU/test/0000.parquet]
+    fields: {text: utt, label: intent, id: id}
+    sample: 100
+    label_group: massive_intents
+    source_label_ids:   # ClassLabel index -> intent (massive.py _INTENTS order; equals the parquet feature names)
+      "0": datetime_query
+      "1": iot_hue_lightchange
+      "2": transport_ticket
+      "3": takeaway_query
+      "4": qa_stock
+      "5": general_greet
+      "6": recommendation_events
+      "7": music_dislikeness
+      "8": iot_wemo_off
+      "9": cooking_recipe
+      "10": qa_currency
+      "11": transport_traffic
+      "12": general_quirky
+      "13": weather_query
+      "14": audio_volume_up
+      "15": email_addcontact
+      "16": takeaway_order
+      "17": email_querycontact
+      "18": iot_hue_lightup
+      "19": recommendation_locations
+      "20": play_audiobook
+      "21": lists_createoradd
+      "22": news_query
+      "23": alarm_query
+      "24": iot_wemo_on
+      "25": general_joke
+      "26": qa_definition
+      "27": social_query
+      "28": music_settings
+      "29": audio_volume_other
+      "30": calendar_remove
+      "31": iot_hue_lightdim
+      "32": calendar_query
+      "33": email_sendemail
+      "34": iot_cleaning
+      "35": audio_volume_down
+      "36": play_radio
+      "37": cooking_query
+      "38": datetime_convert
+      "39": qa_maths
+      "40": iot_hue_lightoff
+      "41": iot_hue_lighton
+      "42": transport_query
+      "43": music_likeness
+      "44": email_query
+      "45": play_music
+      "46": audio_volume_mute
+      "47": social_post
+      "48": alarm_set
+      "49": qa_factoid
+      "50": calendar_set
+      "51": play_game
+      "52": alarm_remove
+      "53": lists_remove
+      "54": transport_taxi
+      "55": recommendation_movies
+      "56": iot_coffee
+      "57": music_query
+      "58": play_podcasts
+      "59": lists_query
+    question: importers.massive
+    question_id: intent
+    licence: CC-BY-4.0
+  scifact:
+    source: translated
+    pack: RAG relevance
+    family: SciFact
+    sample: 500
+    question: importers.scifact
+    state: importers.scifact_state
+    engine: opus-mt
+  fresh:
+    source: generated
+    pack: Arena Fresh
+    family: Arena Fresh
+  robustness:
+    source: generated
+    pack: Robustness
+    family: Robustness
+  episodes:
+    source: generated
+    pack: Episodes
+    family: Warehouse / Ticket workflow
+    reason: dynamic; one case per episode step, not part of the Full preset count
+  abcd:
+    source: missing
+    pack: ABCD next action
+    family: ABCD
+    reason: separate frozen assessment; Hungarian ABCD is a follow-up

@@ -1,0 +1,20 @@
+[
+ {
+  "id": "0",
+  "premise": "val előfeltevés 0",
+  "hypothesis": "val hipotézis 0",
+  "label": "entailment"
+ },
+ {
+  "id": "1",
+  "premise": "val előfeltevés 1",
+  "hypothesis": "val hipotézis 1",
+  "label": "neutral"
+ },
+ {
+  "id": "2",
+  "premise": "val előfeltevés 2",
+  "hypothesis": "val hipotézis 2",
+  "label": "contradiction"
+ }
+]

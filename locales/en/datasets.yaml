@@ -1,0 +1,123 @@
+# Dataset slots for English. Descriptive: English packs are built by arena/importers.py and
+# arena/multilingual.py (unchanged); this file records their sources and supplies the expected counts.
+# Other languages declare the same slot ids with source native | translated | generated | missing.
+# Schema: arena/i18n/datasets.py. Validate with: uv run --frozen python -m arena.i18n check
+slots:
+  jevbench:
+    source: native
+    pack: JevBench public
+    family: JevBench
+    repo: https://github.com/fstandhartinger/jevbench
+    revision: d06ee95988da1350eb8ae5511daa0e06bfffe911  # sources.lock.json
+    files: [datasets/public/original.jsonl, datasets/public/easy.jsonl, datasets/public/hard.jsonl]
+    sample: 231
+    licence: see the original repository; no text redistribution
+  typed-decisions:
+    source: native
+    pack: Typed decisions
+    family: Typed decisions
+    repo: LocalLLaMA/typed-decisions
+    revision: f7a2487edd7a043a5441a5e9ccc7fe5ddbd9ebe8
+    files: [all/test-00000-of-00001.parquet]
+    sample: 400   # rows; every row carries several questions
+    cases: 2000
+    licence: Apache-2.0
+  sst2:
+    source: native
+    pack: Classification
+    family: SST-2
+    repo: stanfordnlp/sst2
+    revision: 8d51e7e4887a4caaa95b3fbebbf53c0490b58bbb
+    files: [data/validation-00000-of-00001.parquet]
+    fields: {text: sentence, label: label}
+    sample: 500
+    label_group: sentiment
+    source_label_ids: {"0": negative, "1": positive}
+    question: importers.sst2
+    licence: see the dataset card
+  agnews:
+    source: native
+    pack: Classification
+    family: AG News
+    repo: fancyzhx/ag_news
+    revision: eb185aade064a813bc0b7f42de02595523103ca4
+    files: [data/test-00000-of-00001.parquet]
+    fields: {text: text, label: label}
+    sample: 500
+    question: importers.agnews
+    licence: see the dataset card
+  banking77:
+    source: native
+    pack: Classification
+    family: BANKING77
+    repo: legacy-datasets/banking77
+    revision: f54121560de48f2852f90be299010d1d6dc612ec
+    files: [data/test-00000-of-00001.parquet]
+    fields: {text: text, label: label}
+    sample: 500
+    label_group: banking77
+    question: importers.banking77
+    licence: CC-BY-4.0
+  xnli:
+    source: native
+    pack: Multilingual
+    family: XNLI
+    repo: facebook/xnli
+    revision: b8dd5d7af51114dbda02c0e3f6133f332186418e
+    files: [all_languages/test-00000-of-00001.parquet]
+    fields: {premise: premise, hypothesis: hypothesis, label: label}
+    sample: 100   # rows; each in en, es, de, hi, ar
+    cases: 500
+    label_group: nli
+    question: importers.xnli
+    question_id: relation
+    state: importers.xnli_state
+    licence: see the original XNLI terms (the HF card lists none)
+  massive:
+    source: native
+    pack: Multilingual
+    family: MASSIVE
+    repo: AmazonScience/massive
+    revision: ed58ac423a2f4121720918bf5301577edce4ffd3  # parquet conversion (refs/convert/parquet)
+    files: [en-US/test/0000.parquet, es-ES/test/0000.parquet, de-DE/test/0000.parquet, hi-IN/test/0000.parquet, ar-SA/test/0000.parquet]
+    fields: {text: utt, label: intent, id: id}
+    sample: 100   # en-US rows; each in five locales
+    cases: 500
+    label_group: massive_intents
+    question: importers.massive
+    question_id: intent
+    licence: CC-BY-4.0
+  scifact:
+    source: native
+    pack: RAG relevance
+    family: SciFact
+    repo: BeIR/scifact
+    revision: b3b5335604bf5ee3c4447671af975ea25143d4f5
+    files: [corpus/corpus-00000-of-00001.parquet, queries/queries-00000-of-00001.parquet]
+    sample: 50    # queries; BM25 top-10 pool each (qrels: BeIR/scifact-qrels@2938d17dc3b09882fdb8c12bbbe2e2dc0e75a029)
+    cases: 500
+    question: importers.scifact
+    state: importers.scifact_state
+    licence: CC-BY-SA-4.0
+  fresh:
+    source: generated
+    pack: Arena Fresh
+    family: Arena Fresh
+  robustness:
+    source: generated
+    pack: Robustness
+    family: Robustness
+  episodes:
+    source: generated
+    pack: Episodes
+    family: Warehouse / Ticket workflow
+    reason: dynamic; one case per episode step, not part of the Full preset count
+  abcd:
+    source: native
+    pack: ABCD next action
+    family: ABCD
+    repo: https://github.com/asappresearch/abcd
+    revision: 6b8700ce67c6b37b062dd7a60abc76d7ef832a97
+    files: [abcd_v1.1.json.gz, guidelines.json, ontology.json]
+    reason: separate frozen assessment with its own runner (arena/abcd.py); not part of the Full preset
+    licence: MIT

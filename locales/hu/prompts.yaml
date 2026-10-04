@@ -74,21 +74,21 @@ episodes:
 # Owned by later tasks (importers and the remaining label groups: Tasks 5-6).
 # Left empty on purpose: `check` reports them as warnings and generation raises until they are filled.
 importers:
-  sst2: ""
-  agnews: ""
-  banking77: ""
-  xnli: ""
-  massive: ""
-  scifact: ""
-  scifact_state: ""
-  xnli_state: ""
+  sst2: "Milyen érzelmet fejez ki ez a filmkritika?"
+  agnews: "Melyik témakör írja le legjobban ezt a szöveget?"
+  banking77: "Melyik banki szándék írja le legjobban ezt az ügyfélkérést?"
+  xnli: "Csak az előfeltevés alapján következik-e belőle a hipotézis, ellentmond-e neki, vagy nem eldönthető (semleges)?"
+  massive: "Válaszd ki, milyen szándékot fejez ki ez az asszisztensnek szóló kérés."
+  scifact: "Tartalmaz-e ez a dokumentum releváns bizonyítékot az állítás igazolásához vagy cáfolásához?"
+  scifact_state: "Állítás: {claim}\nDokumentum címe: {title}\nDokumentum: {text}"
+  xnli_state: "Előfeltevés: {premise}\nHipotézis: {hypothesis}"
 labels:
   # Stable (English) id -> Hungarian label.
   fresh_choice: {"Billing": "Számlázás", "Engineering": "Műszaki", "Success": "Ügyfélsiker", "Proceed": "Folytatás", "Review": "Felülvizsgálat", "Stop": "Leállítás", "Supported": "Alátámasztott", "Contradicted": "Ellentmondó", "Insufficient evidence": "Nincs elég bizonyíték", "Reader": "Olvasó", "Editor": "Szerkesztő", "Request approval": "Jóváhagyás kérése", "Secure review": "Biztonsági felülvizsgálat", "Intake": "Iktatás", "Archive": "Archívum", "Relevant": "Releváns", "Not relevant": "Nem releváns", "Active": "Aktív", "Inactive": "Inaktív", "Unknown": "Ismeretlen", "Critical": "Kritikus", "Warning": "Figyelmeztetés", "Healthy": "Rendben"}
   directions: {"north": "észak", "east": "kelet", "south": "dél", "west": "nyugat"}
   ticket_queues: {"Billing": "Számlázás", "Engineering": "Műszaki", "Success": "Ügyfélsiker", "Review": "Felülvizsgálat"}
-  sentiment: {"negative": "", "positive": ""}
-  nli: {"entailment": "", "neutral": "", "contradiction": ""}
-  sib_topics: {}
-  massive_intents: {}
+  sentiment: {"negative": "negatív", "positive": "pozitív"}
+  nli: {"entailment": "következik", "neutral": "semleges", "contradiction": "ellentmond"}
+  sib_topics: {"science/technology": "tudomány/technológia", "travel": "utazás", "politics": "politika", "sports": "sport", "health": "egészség", "entertainment": "szórakozás", "geography": "földrajz"}
+  massive_intents: {"datetime_query": "dátum_és_idő_lekérdezése", "iot_hue_lightchange": "világítás_színének_módosítása", "transport_ticket": "jegyfoglalás", "takeaway_query": "elviteles_étel_lekérdezése", "qa_stock": "részvényárfolyam_kérdés", "general_greet": "köszönés", "recommendation_events": "eseményajánlás", "music_dislikeness": "zene_nem_tetszik", "iot_wemo_off": "okoskonnektor_kikapcsolása", "cooking_recipe": "recept_kérése", "qa_currency": "valutaárfolyam_kérdés", "transport_traffic": "forgalmi_helyzet", "general_quirky": "egyéb_csevegés", "weather_query": "időjárás_lekérdezése", "audio_volume_up": "hangerő_növelése", "email_addcontact": "névjegy_hozzáadása", "takeaway_order": "elviteles_étel_rendelése", "email_querycontact": "névjegy_lekérdezése", "iot_hue_lightup": "világítás_erősítése", "recommendation_locations": "helyajánlás", "play_audiobook": "hangoskönyv_lejátszása", "lists_createoradd": "lista_létrehozása_vagy_bővítése", "news_query": "hírek_lekérdezése", "alarm_query": "ébresztők_lekérdezése", "iot_wemo_on": "okoskonnektor_bekapcsolása", "general_joke": "viccmesélés", "qa_definition": "fogalom_meghatározása", "social_query": "közösségi_média_lekérdezése", "music_settings": "zenei_beállítások", "audio_volume_other": "egyéb_hangerő_beállítás", "calendar_remove": "naptárbejegyzés_törlése", "iot_hue_lightdim": "világítás_tompítása", "calendar_query": "naptár_lekérdezése", "email_sendemail": "e-mail_küldése", "iot_cleaning": "takarítás_indítása", "audio_volume_down": "hangerő_csökkentése", "play_radio": "rádió_lejátszása", "cooking_query": "főzési_kérdés", "datetime_convert": "idő_átváltása", "qa_maths": "matematikai_kérdés", "iot_hue_lightoff": "világítás_kikapcsolása", "iot_hue_lighton": "világítás_bekapcsolása", "transport_query": "közlekedési_információ", "music_likeness": "zene_tetszik", "email_query": "e-mailek_lekérdezése", "play_music": "zene_lejátszása", "audio_volume_mute": "némítás", "social_post": "közösségi_média_bejegyzés", "alarm_set": "ébresztő_beállítása", "qa_factoid": "ténykérdés", "calendar_set": "naptárbejegyzés_létrehozása", "play_game": "játék_indítása", "alarm_remove": "ébresztő_törlése", "lists_remove": "törlés_listából", "transport_taxi": "taxirendelés", "recommendation_movies": "filmajánlás", "iot_coffee": "kávéfőzés", "music_query": "zene_lekérdezése", "play_podcasts": "podcast_lejátszása", "lists_query": "lista_lekérdezése"}
   banking77: {}

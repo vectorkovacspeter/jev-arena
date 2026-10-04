@@ -1,0 +1,26 @@
+[
+ {
+  "id": "0",
+  "premise": "train előfeltevés 0",
+  "hypothesis": "train hipotézis 0",
+  "label": "entailment"
+ },
+ {
+  "id": "1",
+  "premise": "train előfeltevés 1",
+  "hypothesis": "train hipotézis 1",
+  "label": "neutral"
+ },
+ {
+  "id": "2",
+  "premise": "train előfeltevés 2",
+  "hypothesis": "train hipotézis 2",
+  "label": "contradiction"
+ },
+ {
+  "id": "3",
+  "premise": "train előfeltevés 3",
+  "hypothesis": "train hipotézis 3",
+  "label": "entailment"
+ }
+]

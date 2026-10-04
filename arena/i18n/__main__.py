@@ -10,7 +10,19 @@ def main(argv=None):
     c.add_argument("--quiet", action="store_true", help="Print errors only")
     n = sub.add_parser("new-language", help="Scaffold locales/<code>/ from en")
     n.add_argument("code"); n.add_argument("--name", required=True); n.add_argument("--native", required=True)
+    p = sub.add_parser("prepare", help="Build a language's dataset packs into .arena/datasets/<lang>/")
+    p.add_argument("--lang", required=True)
+    p.add_argument("--only", choices=["native", "translated", "generated"])
     args = parser.parse_args(argv)
+    if args.command == "prepare":
+        from arena.i18n import packs
+        try:
+            result = packs.prepare_language(args.lang, lambda message: print(message, flush=True), only=args.only)
+        except (FileNotFoundError, ValueError, KeyError) as e:
+            print(f"Error: {e}")
+            return 1
+        print(f"{args.lang}: {sum(result.values())} cases in {len(result)} pack files")
+        return 0
     if args.command == "new-language":
         try:
             path = check.new_language(args.code, args.name, args.native)
