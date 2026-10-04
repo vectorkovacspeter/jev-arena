@@ -14,7 +14,7 @@ def main(argv=None):
     if args.command == "new-language":
         try:
             path = check.new_language(args.code, args.name, args.native)
-            print(f"Created {path}. Next: translate ui.json, then run check.")
+            print(f"Created {path}. Next: translate ui.json (and prompts.yaml for test data), then run check.")
             return 0
         except (FileExistsError, ValueError) as e:
             print(f"Error: {e}")
