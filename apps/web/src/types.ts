@@ -219,3 +219,4 @@ export type Episode = {
     deadline_missed?: boolean;
   }[];
 };
+export type LocaleInfo = { code: string; name: string; nativeName: string; status: "complete" | "beta"; completeness: number };
