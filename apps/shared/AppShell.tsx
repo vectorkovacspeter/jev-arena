@@ -13,6 +13,12 @@ export type AppNavigationItem<Id extends string> = {
   icon: LucideIcon;
 };
 
+export type ShellLabels = {
+  skipToContent: string; expandNavigation: string; collapseNavigation: string; presenter: string;
+  exitPresenter: string; exitPresenterTitle: string; presenterTitle: string; workspace: string;
+  localWorkspace: string; homeLabel: string; workspaceLabel: string; navigationLabel: string;
+};
+
 type AppShellProps<Id extends string> = {
   appName: string;
   description: string;
@@ -25,6 +31,8 @@ type AppShellProps<Id extends string> = {
   statusTone?: 'neutral' | 'success';
   sidebarFooter?: ReactNode;
   footerNote: ReactNode;
+  labels: ShellLabels;
+  headerExtra?: ReactNode;
   className?: string;
   children: ReactNode;
 };
@@ -35,7 +43,7 @@ const navigationPreference = 'taia:navigation-collapsed';
 export function AppShell<Id extends string>({
   appName, description, navigation, activePage, onNavigate, presenter,
   onPresenterChange, status, statusTone = 'neutral', sidebarFooter,
-  footerNote, className = '', children,
+  footerNote, labels, headerExtra, className = '', children,
 }: AppShellProps<Id>) {
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem(navigationPreference) === 'true'; }
@@ -74,32 +82,33 @@ export function AppShell<Id extends string>({
   }
 
   return <div className={`taia-shell ${collapsed ? 'taia-shell--collapsed' : ''} ${presenter ? 'taia-shell--presenter presenter' : ''} ${className}`}>
-    <a className="taia-skip-link" href="#taia-main">Skip to content</a>
+    <a className="taia-skip-link" href="#taia-main">{labels.skipToContent}</a>
     <header className="taia-header">
-      <a className="taia-brand" href="#" aria-label={`The AI Automators — ${appName} home`} onClick={event => { event.preventDefault(); if (navigation[0]) navigate(navigation[0].id); }}>
+      <a className="taia-brand" href="#" aria-label={labels.homeLabel} onClick={event => { event.preventDefault(); if (navigation[0]) navigate(navigation[0].id); }}>
         <span className="taia-logo-crop"><img src={logo} alt="The AI Automators" /></span>
       </a>
       <div className="taia-header-content">
-        {!presenter && <button type="button" className="taia-icon-button taia-nav-toggle" onClick={toggleNavigation} aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'} title={collapsed ? 'Expand navigation' : 'Collapse navigation'} aria-expanded={!collapsed} aria-controls="taia-navigation">
+        {!presenter && <button type="button" className="taia-icon-button taia-nav-toggle" onClick={toggleNavigation} aria-label={collapsed ? labels.expandNavigation : labels.collapseNavigation} title={collapsed ? labels.expandNavigation : labels.collapseNavigation} aria-expanded={!collapsed} aria-controls="taia-navigation">
           {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
         </button>}
         <div className="taia-location"><strong>{appName}</strong><ChevronRight size={14} aria-hidden="true" /><span>{currentPage?.label}</span></div>
         <div className="taia-header-actions">
+          {headerExtra}
           <span className={`taia-status taia-status--${statusTone}`}><i aria-hidden="true" />{status}</span>
-          <button type="button" className="taia-presenter-button" aria-pressed={presenter} onClick={() => onPresenterChange(!presenter)} title={presenter ? 'Exit presenter (Esc)' : 'Presenter mode'}>
-            {presenter ? <Minimize2 size={16} /> : <Maximize2 size={16} />}<span>{presenter ? 'Exit presenter' : 'Presenter'}</span>
+          <button type="button" className="taia-presenter-button" aria-pressed={presenter} onClick={() => onPresenterChange(!presenter)} title={presenter ? labels.exitPresenterTitle : labels.presenterTitle}>
+            {presenter ? <Minimize2 size={16} /> : <Maximize2 size={16} />}<span>{presenter ? labels.exitPresenter : labels.presenter}</span>
           </button>
         </div>
       </div>
     </header>
-    <aside className="taia-sidebar" aria-label={`${appName} workspace`}>
-      <div className="taia-sidebar-intro"><span>WORKSPACE</span><p>{description}</p></div>
-      <nav id="taia-navigation" className="taia-navigation" aria-label={`${appName} navigation`} ref={navRef}>
+    <aside className="taia-sidebar" aria-label={labels.workspaceLabel}>
+      <div className="taia-sidebar-intro"><span>{labels.workspace}</span><p>{description}</p></div>
+      <nav id="taia-navigation" className="taia-navigation" aria-label={labels.navigationLabel} ref={navRef}>
         {navigation.map(({ id, label, icon: Icon }) => <button type="button" key={id} onClick={() => navigate(id)} aria-current={activePage === id ? 'page' : undefined} title={label} aria-label={label}>
           <Icon size={18} aria-hidden="true" /><span>{label}</span>
         </button>)}
       </nav>
-      <div className="taia-sidebar-footer">{sidebarFooter}<span className="taia-workspace-label"><i aria-hidden="true" />Local workspace</span></div>
+      <div className="taia-sidebar-footer">{sidebarFooter}<span className="taia-workspace-label"><i aria-hidden="true" />{labels.localWorkspace}</span></div>
     </aside>
     <div className="taia-body">
       <main id="taia-main" className="taia-content" tabIndex={-1}>{children}</main>

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createNavigation } from '../src/navigation.ts';
+import { createNavigation, pageKeys } from '../src/navigation.ts';
 
 function fixture(hash = '') {
   const entries = [{ state: { unrelated: 'preserve me' }, hash }];
@@ -79,4 +79,8 @@ test('Direct links have a safe root and unrelated hashes do not become pages', (
   direct.nav.back();
   assert.equal(direct.nav.current.depth, 0);
   assert.equal(fixture('#taia-main').nav.current.page, 'arena');
+});
+
+test('every page id maps to a nav catalog key', () => {
+  for (const [id, key] of Object.entries(pageKeys)) assert.equal(key, `nav.${id}`);
 });

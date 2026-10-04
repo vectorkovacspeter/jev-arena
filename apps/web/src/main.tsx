@@ -41,7 +41,11 @@ import type {
   Result,
   Metrics,
   ArenaEvent,
+  LocaleInfo,
 } from "./types";
+import type { TFunction } from "i18next";
+import { initI18n, setLanguage, useTranslation, bundledLocales } from "./i18n";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 
 import "./styles.css";
@@ -77,7 +81,7 @@ const stages = [
 
 declare global {
   interface Window {
-    __ARENA_REPORT__?: { run: Run; result: Result; readiness: Ready };
+    __ARENA_REPORT__?: { run: Run; result: Result; readiness: Ready; language?: string };
   }
 }
 
@@ -88,11 +92,14 @@ let token = "";
 async function api<T>(path: string, body?: unknown): Promise<T> {
   if (offline) {
     if (body !== undefined)
-      throw new Error(
-        "This saved report is read-only. Launch Jev Arena to run models.",
+      throw Object.assign(
+        new Error("This saved report is read-only. Launch Jev Arena to run models."),
+        { code: "report_read_only" },
       );
     return (
-      path === "/readiness"
+      path === "/i18n"
+        ? { language: offline.language ?? "en", locales: bundledLocales }
+        : path === "/readiness"
         ? offline.readiness
         : path === "/runs"
           ? [offline.run]
@@ -125,14 +132,28 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
 
   if (!r.ok) {
     const data = await r.json().catch(() => ({ detail: r.statusText }));
-    throw new Error(
-      typeof data.detail === "string"
-        ? data.detail
-        : JSON.stringify(data.detail),
+    throw Object.assign(
+      new Error(
+        typeof data.detail === "string"
+          ? data.detail
+          : JSON.stringify(data.detail),
+      ),
+      { code: data.code, params: data.params },
     );
   }
   return r.json();
 }
+
+const errorText = (t: TFunction, e: unknown) => {
+  const x = e as Error & { code?: string; params?: Record<string, unknown> };
+  if (!x.code) return x.message;
+  const params = { ...x.params };
+  if (x.code === "setup_needed" && Array.isArray(params.models))
+    params.details = (params.models as { name: string; reason_code: string }[])
+      .map((m) => `${m.name}: ${t(`readiness.${m.reason_code}`)}`)
+      .join("; ");
+  return t(`errors.${x.code}`, { ...params, defaultValue: x.message });
+};
 
 const pct = (v: number | null | undefined, d = 1) =>
   v == null ? "—" : `${(v * 100).toFixed(d)}%`;
@@ -158,6 +179,8 @@ const typicalTime = (result: Result | null, id: string) => {
   return blocks.length ? blocks[Math.floor(blocks.length/2)] : result?.entrants.find(e=>e.id===id)?.metrics.p50_ms;
 };
 function App() {
+  const { t, i18n } = useTranslation();
+  const [locales, setLocales] = useState<LocaleInfo[]>([]);
   const { page, navigate: setPage, back, canGoBack, backLabel } = useNavigation();
   const [resultsAssessment, setResultsAssessment] = useViewState("resultsAssessment", "arena");
   const [caseDataset, setCaseDataset] = useViewState("caseDataset", "arena");
@@ -193,6 +216,15 @@ function App() {
     [focus, setFocus] = useViewState<string | null>("focusedModel", null),
     [present, setPresent] = useState(false);
 
+  useEffect(() => {
+    api<{ language: string; locales: LocaleInfo[] }>("/i18n").then((x) => setLocales(x.locales)).catch(() => {});
+  }, []);
+
+  async function changeLanguage(code: string) {
+    if (!offline) await api("/i18n", { language: code });
+    await setLanguage(code);
+  }
+
   const refresh = useCallback(async () => {
     try {
       const [a, b] = await Promise.all([
@@ -213,9 +245,9 @@ function App() {
           null,
       );
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(t, e));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     refresh();
@@ -228,10 +260,10 @@ function App() {
       try {
         setResult(await api<Result>(`/runs/${rid}/results`));
       } catch (e) {
-        setError((e as Error).message);
+        setError(errorText(t, e));
       }
     }
-  }, [rid]);
+  }, [rid, t]);
 
   const selectedRunStatus = runs.find(run => run.id === rid)?.status;
   const isLiveRun = !!selectedRunStatus && !terminal.includes(selectedRunStatus);
@@ -355,7 +387,7 @@ function App() {
       setDrawer(false);
       await refresh();
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(t, e));
       setDrawer(true);
     } finally {
       setBusy(false);
@@ -367,7 +399,7 @@ function App() {
       await api(path, {});
       await refresh();
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(t, e));
     }
   }
 
@@ -381,26 +413,41 @@ function App() {
     <>
       <AppShell
         appName="Jev Arena"
-        description="Decision model lab"
+        description={t("shell.description")}
+        labels={{
+          skipToContent: t("shell.skipToContent"),
+          expandNavigation: t("shell.expandNavigation"),
+          collapseNavigation: t("shell.collapseNavigation"),
+          presenter: t("shell.presenter"),
+          exitPresenter: t("shell.exitPresenter"),
+          exitPresenterTitle: t("shell.exitPresenterTitle"),
+          presenterTitle: t("shell.presenterTitle"),
+          workspace: t("shell.workspace"),
+          localWorkspace: t("shell.localWorkspace"),
+          homeLabel: t("shell.homeLabel", { appName: "Jev Arena" }),
+          workspaceLabel: t("shell.workspaceLabel", { appName: "Jev Arena" }),
+          navigationLabel: t("shell.navigationLabel", { appName: "Jev Arena" }),
+        }}
+        headerExtra={<LanguageSwitcher locales={locales} language={i18n.language} onChange={changeLanguage} />}
         navigation={[
-          { id: "arena", label: "Overview", icon: Activity },
-          { id: "takeaways", label: "What we learned", icon: Sparkles },
-          { id: "models", label: "Model guide", icon: Cpu },
-          { id: "abcd", label: "Support conversations", icon: Database },
-          { id: "sources", label: "Tests & scoring", icon: ShieldCheck },
-          { id: "results", label: "Results", icon: Layers3 },
-          { id: "cases", label: "Case explorer", icon: FlaskConical },
-          { id: "replay", label: "Workflow replays", icon: Play },
-          { id: "run", label: "Run a new test", icon: Play },
-          { id: "setup", label: "Setup", icon: Settings2 },
+          { id: "arena", label: t("nav.arena"), icon: Activity },
+          { id: "takeaways", label: t("nav.takeaways"), icon: Sparkles },
+          { id: "models", label: t("nav.models"), icon: Cpu },
+          { id: "abcd", label: t("nav.abcd"), icon: Database },
+          { id: "sources", label: t("nav.sources"), icon: ShieldCheck },
+          { id: "results", label: t("nav.results"), icon: Layers3 },
+          { id: "cases", label: t("nav.cases"), icon: FlaskConical },
+          { id: "replay", label: t("nav.replay"), icon: Play },
+          { id: "run", label: t("nav.run"), icon: Play },
+          { id: "setup", label: t("nav.setup"), icon: Settings2 },
         ]}
         activePage={page}
         onNavigate={setPage}
         presenter={present}
         onPresenterChange={setPresent}
-        status={offline ? "Saved report" : ready?.hardware.gpu?.name.replace("NVIDIA GeForce ", "") || "Local workspace"}
-        sidebarFooter={<><p>Saved evidence. Clear comparisons.</p><button className="text-button" onClick={()=>setPage("sources")}>All benchmark sources →</button></>}
-        footerNote={showingAbcd ? "abcd-test-v1 · Separate completed assessment" : result ? `${result.run_id} · ${label(current?.status || "")}` : "No synthetic measurements"}
+        status={offline ? t("overview.savedReport") : ready?.hardware.gpu?.name.replace("NVIDIA GeForce ", "") || t("shell.localWorkspace")}
+        sidebarFooter={<><p>{t("overview.sidebarTagline")}</p><button className="text-button" onClick={()=>setPage("sources")}>{t("overview.allSources")}</button></>}
+        footerNote={showingAbcd ? t("overview.footerAbcd") : result ? `${result.run_id} · ${label(current?.status || "")}` : t("overview.footerNone")}
         className={`page-${page}`}
       >
           {offline && (
@@ -1827,8 +1874,12 @@ function Empty({
   );
 }
 
-createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <NavigationProvider><App /></NavigationProvider>
-  </React.StrictMode>,
-);
+(async () => {
+  const state = await api<{ language: string; locales: LocaleInfo[] }>("/i18n").catch(() => ({ language: "en", locales: [] }));
+  await initI18n(state.language);
+  createRoot(document.getElementById("root")!).render(
+    <React.StrictMode>
+      <NavigationProvider><App /></NavigationProvider>
+    </React.StrictMode>,
+  );
+})();

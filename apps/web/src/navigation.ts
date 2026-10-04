@@ -1,8 +1,6 @@
-export const pageNames: Record<string, string> = {
-  arena: "Overview", results: "Results", cases: "Case explorer", abcd: "Support conversations",
-  models: "Model guide", takeaways: "What we learned", sources: "Tests & scoring",
-  chart: "Accuracy and speed", replay: "Workflow replays", run: "Run a new test", setup: "Setup",
-};
+const pageIds = ["arena", "results", "cases", "abcd", "models", "takeaways", "sources", "chart", "replay", "run", "setup"] as const;
+/** Page id → catalog key. Ids are stable history state; labels are translated. */
+export const pageKeys: Record<string, string> = Object.fromEntries(pageIds.map(id => [id, `nav.${id}`]));
 
 export type NavigationEntry = {
   version: 1; id: string; depth: number; page: string; previousPage?: string;
@@ -11,9 +9,9 @@ export type NavigationEntry = {
 type Host = { history: Pick<History, "state" | "replaceState" | "pushState" | "back">;
   location: Pick<Location, "hash">; readonly scrollY: number };
 const key = "jevArenaNavigation";
-const pageFromHash = (hash: string) => Object.hasOwn(pageNames, hash.slice(1)) ? hash.slice(1) : "arena";
+const pageFromHash = (hash: string) => Object.hasOwn(pageKeys, hash.slice(1)) ? hash.slice(1) : "arena";
 const isEntry = (entry: NavigationEntry | undefined): entry is NavigationEntry =>
-  !!entry && entry.version === 1 && typeof entry.id === "string" && Object.hasOwn(pageNames, entry.page)
+  !!entry && entry.version === 1 && typeof entry.id === "string" && Object.hasOwn(pageKeys, entry.page)
   && Number.isInteger(entry.depth) && entry.depth >= 0 && Number.isFinite(entry.scrollY)
   && !!entry.values && typeof entry.values === "object";
 const makeEntry = (page: string): NavigationEntry => ({ version: 1, id: crypto.randomUUID(), depth: 0, page, values: {}, scrollY: 0 });
@@ -38,7 +36,7 @@ export function createNavigation(host: Host, publish: (entry: NavigationEntry, r
       current = { ...current, scrollY: host.scrollY }; write("replaceState");
     },
     navigate(page: string, values: Record<string, unknown> = {}) {
-      if (!Object.hasOwn(pageNames, page)) return;
+      if (!Object.hasOwn(pageKeys, page)) return;
       if (current.page === page) {
         current = { ...current, values: { ...current.values, ...values } };
         write("replaceState"); publish(current, false); return;

@@ -20,7 +20,8 @@
     "navigationLabel": "{{appName}} navigáció",
     "language": "Nyelv",
     "beta": "béta",
-    "englishOnly": "Ez a rész csak angolul érhető el."
+    "englishOnly": "Ez a rész csak angolul érhető el.",
+    "description": "Döntési modell labor"
   },
   "nav": {
     "arena": "Áttekintés",
@@ -35,6 +36,13 @@
     "run": "Új teszt futtatása",
     "setup": "Beállítás",
     "previousView": "előző nézet"
+  },
+  "overview": {
+    "savedReport": "Mentett jelentés",
+    "sidebarTagline": "Mentett bizonyítékok. Világos összehasonlítások.",
+    "allSources": "Az összes benchmark-forrás →",
+    "footerAbcd": "abcd-test-v1 · Különálló, lezárt értékelés",
+    "footerNone": "Nincsenek szintetikus mérések"
   },
   "errors": {
     "duplicate_entrants": "Ismétlődő résztvevők",

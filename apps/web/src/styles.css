@@ -2753,3 +2753,6 @@ tbody tr.row-selected {
 .answer-reveal { animation:guide-in .18s ease-out; }.case-detail .reference { flex-wrap:wrap; }
 .case-detail .decision-title { flex-wrap:wrap; }.case-detail .decision-title>span { overflow-wrap:anywhere; }
 @media(prefers-reduced-motion:reduce) { .answer-reveal {animation:none}.table-bar i,.quick-types button {transition:none} }
+.language-switcher{display:inline-flex;align-items:center;gap:6px}
+.language-switcher select{background:transparent;color:inherit;border:1px solid currentColor;border-radius:6px;padding:2px 6px;font:inherit}
+.english-only{margin:0 0 8px}

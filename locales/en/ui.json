@@ -20,7 +20,8 @@
     "navigationLabel": "{{appName}} navigation",
     "language": "Language",
     "beta": "beta",
-    "englishOnly": "This section is available in English only."
+    "englishOnly": "This section is available in English only.",
+    "description": "Decision model lab"
   },
   "nav": {
     "arena": "Overview",
@@ -35,6 +36,13 @@
     "run": "Run a new test",
     "setup": "Setup",
     "previousView": "previous view"
+  },
+  "overview": {
+    "savedReport": "Saved report",
+    "sidebarTagline": "Saved evidence. Clear comparisons.",
+    "allSources": "All benchmark sources →",
+    "footerAbcd": "abcd-test-v1 · Separate completed assessment",
+    "footerNone": "No synthetic measurements"
   },
   "errors": {
     "duplicate_entrants": "Duplicate entrants",

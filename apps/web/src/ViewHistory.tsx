@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, useCallback, type ReactNode, type Dispatch, type SetStateAction } from "react";
-import { createNavigation, pageNames, type NavigationEntry } from "./navigation";
+import { useTranslation } from "./i18n";
+import { createNavigation, pageKeys, type NavigationEntry } from "./navigation";
 
 type Controller = ReturnType<typeof createNavigation>;
 const Context = createContext<{ controller: Controller; entry: NavigationEntry } | null>(null);
@@ -65,8 +66,9 @@ export function useNavigation() {
   const context = useContext(Context);
   if (!context) throw new Error("NavigationProvider is required");
   const { controller, entry } = context;
+  const { t } = useTranslation();
   return { page: entry.page, navigate: controller.navigate.bind(controller), back: () => controller.back(),
-    canGoBack: entry.depth > 0, backLabel: pageNames[entry.previousPage || ""] || "previous view" };
+    canGoBack: entry.depth > 0, backLabel: t(pageKeys[entry.previousPage || ""] ?? "nav.previousView") };
 }
 
 export function useViewState<T>(name: string, fallback: T): [T, Dispatch<SetStateAction<T>>] {
