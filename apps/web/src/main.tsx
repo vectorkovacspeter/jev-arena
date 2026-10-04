@@ -44,6 +44,7 @@ import type {
   LocaleInfo,
 } from "./types";
 import { initI18n, setLanguage, useTranslation, useFormat, bundledLocales } from "./i18n";
+import { safeLocale } from "./format";
 import { Trans } from "react-i18next";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { EnglishOnly } from "./EnglishOnly";
@@ -154,7 +155,7 @@ const typicalTime = (result: Result | null, id: string) => {
   const blocks = result?.performance?.[id]?.blocks.map(b=>b.p50_ms).sort((a,b)=>a-b) || [];
   return blocks.length ? blocks[Math.floor(blocks.length/2)] : result?.entrants.find(e=>e.id===id)?.metrics.p50_ms;
 };
-function App() {
+function App({ locales }: { locales: LocaleInfo[] }) {
   const { t, i18n } = useTranslation();
   const fmt = useFormat();
   const tRef = useRef(t);
@@ -162,7 +163,6 @@ function App() {
   const statusLabel = (s: string) => (s ? t(`status.${s}`, { defaultValue: label(s) }) : "");
   const presetLabel = (p: string) =>
     ({ smoke: t("common.presets.smoke"), demo: t("common.presets.demo"), full: t("common.presets.full") })[p] ?? label(p);
-  const [locales, setLocales] = useState<LocaleInfo[]>([]);
   const { page, navigate: setPage, back, canGoBack, backLabel } = useNavigation();
   const [resultsAssessment, setResultsAssessment] = useViewState("resultsAssessment", "arena");
   const [caseDataset, setCaseDataset] = useViewState("caseDataset", "arena");
@@ -197,10 +197,6 @@ function App() {
     [busy, setBusy] = useState(false),
     [focus, setFocus] = useViewState<string | null>("focusedModel", null),
     [present, setPresent] = useState(false);
-
-  useEffect(() => {
-    api<{ language: string; locales: LocaleInfo[] }>("/i18n").then((x) => setLocales(x.locales)).catch(() => {});
-  }, []);
 
   async function changeLanguage(code: string) {
     try {
@@ -492,7 +488,7 @@ function App() {
                     <option value={r.id} key={r.id}>
                       {t("overview.runOption", {
                         date: fmt.shortDate(r.created),
-                        preset: presetLabel(r.request.preset).toLocaleLowerCase(i18n.language),
+                        preset: presetLabel(r.request.preset).toLocaleLowerCase(safeLocale(i18n.language)),
                         count: r.request.model_ids.length,
                         id: r.id.slice(-6),
                         status: statusLabel(r.status),
@@ -548,7 +544,7 @@ function App() {
                 <span className="scope-label">
                   {result
                     ? t("overview.scope", {
-                        preset: presetLabel(result.preset).toLocaleUpperCase(i18n.language),
+                        preset: presetLabel(result.preset).toLocaleUpperCase(safeLocale(i18n.language)),
                         version: String(current?.manifest.version || "arena-v1").replace("arena-", "").toUpperCase(),
                         count: result.case_count,
                         n: fmt.number(result.case_count),
@@ -1859,10 +1855,12 @@ function Empty({
 
 (async () => {
   const state = await api<{ language: string; locales: LocaleInfo[] }>("/i18n").catch(() => ({ language: "en", locales: [] }));
-  await initI18n(state.language);
+  const bundled = new Set(bundledLocales.map((l) => l.code));
+  const locales = state.locales.filter((l) => bundled.has(l.code));
+  await initI18n(bundled.has(state.language) ? state.language : "en");
   createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
-      <NavigationProvider><App /></NavigationProvider>
+      <NavigationProvider><App locales={locales} /></NavigationProvider>
     </React.StrictMode>,
   );
 })();

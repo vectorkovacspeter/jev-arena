@@ -14,22 +14,24 @@ export const bundledLocales: LocaleInfo[] = Object.values(metas)
   .sort((a, b) => Number(a.code !== "en") - Number(b.code !== "en") || a.code.localeCompare(b.code));
 export const i18n = i18next;
 
+const syncHtmlLang = (fallback: string) => { document.documentElement.lang = i18next.resolvedLanguage ?? fallback; };
+
 export async function initI18n(language: string) {
   if (i18next.isInitialized) {
-    await i18next.changeLanguage(language);
-    document.documentElement.lang = language;
+    await setLanguage(language);
     return;
   }
   await i18next.use(initReactI18next).init({
     resources, lng: language, fallbackLng: "en", returnEmptyString: false,
     interpolation: { escapeValue: false }, // React escapes.
+    showSupportNotice: false,
   });
-  document.documentElement.lang = language;
+  syncHtmlLang(language);
 }
 
 export async function setLanguage(language: string) {
   await i18next.changeLanguage(language);
-  document.documentElement.lang = language;
+  syncHtmlLang(language);
 }
 
 export function useFormat() {

@@ -3,8 +3,6 @@
 // The parser tests patterns against "<namespace><namespaceSeparator><key>", so the default
 // namespace "translation" and the ":" separator are part of the matched string.
 const dynamic = ["errors", "readiness", "packs", "families", "status", "nav", "results.verdicts", "operations.directions", "operations.queues", "operations.topics", "explore.types", "explore.errors", "abcd.errors", "abcd.conditions"];
-// Keys reserved for upcoming code (common.pp is appended to fmt.points output from Task 9 on).
-const reserved = ["common.pp"];
 
 export default {
   locales: ["en"],
@@ -14,7 +12,6 @@ export default {
   namespaceSeparator: ":",
   keepRemoved: [
     ...dynamic.map((prefix) => new RegExp(`^translation:${prefix.replaceAll(".", "\\.")}(\\.|$)`)),
-    ...reserved.map((key) => new RegExp(`^translation:${key.replaceAll(".", "\\.")}$`)),
   ],
   createOldCatalogs: false,
   failOnUpdate: false,
