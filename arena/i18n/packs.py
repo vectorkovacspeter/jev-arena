@@ -10,6 +10,7 @@ from typing import Callable
 from arena.config import DATASETS, digest, write_json
 from arena.contracts import Case
 from arena.i18n.datasets import Slot, load_slots
+from arena.i18n.engines import Unavailable
 
 # English pack name -> file name, one file per English pack.
 PACK_FILES = {"JevBench public": "jevbench", "Typed decisions": "typed", "Classification": "classification",
@@ -49,17 +50,22 @@ def save(lang: str, pack_file: str, cases: list[Case], expected: int, licences: 
     write_json(folder / f"{pack_file}-manifest.json", {"version": "arena-v1", "language": lang, "count": len(cases), "sha256": digest(raw.encode()),
                                                        "source_revisions": revisions or {}, "licences": licences or {}, "case_ids": [c.id for c in cases]})
 
-def _build(lang: str, slot_id: str, slot: Slot) -> list[Case]:
+def _build(lang: str, slot_id: str, slot: Slot, progress: Callable[[str], None]) -> list[Case]:
     if slot.source == "native":
         from arena.i18n import native
         return native.build(lang, slot_id, slot)
+    if slot.source == "translated":
+        from arena.i18n import translated
+        return translated.prepare_slot(lang, slot_id, slot, progress)
     raise NotImplementedError(f"{slot.source} slots are not buildable yet")
 
 def prepare_language(lang: str, progress: Callable[[str], None] | None = None, only: str | None = None) -> dict[str, int]:
-    """Build the language's native (and later translated) slots into one file per English pack.
+    """Build the language's native and translated slots into one file per English pack.
 
-    Generated slots need no files: they are produced on demand from prompts.yaml. Rebuilding a subset of
-    slots keeps the cases of the other slots already in a pack file. Returns {pack_file: cases written}.
+    Generated slots need no files: they are produced on demand from prompts.yaml. Translated slots need the
+    English packs; a slot that cannot be built now (English not prepared, engine unavailable, manual translations
+    pending) is reported and skipped. Rebuilding a subset of slots keeps the cases of the other slots already in a
+    pack file. Returns {pack_file: cases written}.
     """
     if lang == "en": raise ValueError("English packs are built by arena.importers")
     say = progress or (lambda message: None)
@@ -70,8 +76,8 @@ def prepare_language(lang: str, progress: Callable[[str], None] | None = None, o
         if slot.source == "missing" or (only and slot.source != only): continue
         if slot.source == "generated": say(f"{slot_id}: generated on demand"); continue
         if slot.pack not in PACK_FILES: raise ValueError(f"{slot_id}: no pack file for pack {slot.pack!r}")
-        try: cases = _build(lang, slot_id, slot)
-        except NotImplementedError as e: say(f"{slot_id}: skipped ({e})"); continue
+        try: cases = _build(lang, slot_id, slot, say)
+        except (NotImplementedError, Unavailable) as e: say(f"{slot_id}: skipped ({e})"); continue
         if slot.expected() is not None and len(cases) != slot.expected():
             raise ValueError(f"{slot_id}: expected {slot.expected()}, got {len(cases)}")
         built[PACK_FILES[slot.pack]][slot_id] = cases
