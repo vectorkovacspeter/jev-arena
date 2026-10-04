@@ -460,7 +460,7 @@ def test_every_code_has_english_catalog_entry():
     from arena.i18n.locales import flatten, load_catalog
     keys = flatten(load_catalog("en"))
     source = "".join(p.read_text(encoding="utf-8") for p in (ROOT / "arena").rglob("*.py"))
-    codes = set(re.findall(r"""Arena(?:HTTP)?Error\((?:\d+,\s*)?['"]([a-z_]+)['"]""", source))
+    codes = set(re.findall(r"""Arena(?:HTTP)?Error\((?:\d+,\s*)?['"](?P<code>[a-z_]+)['"]""", source))
     assert codes and all(f"errors.{c}" in keys for c in codes)
 ```
 
@@ -1413,7 +1413,7 @@ Describe the following, each with file paths: the locale bundle layout; the glob
 ```markdown
 ## Languages
 
-The interface is available in English and Hungarian (beta). Choose the language in the header; the choice is saved in `.arena/settings.json`. To add a language, see [Contributing translations](docs/i18n/CONTRIBUTING-TRANSLATIONS.md).
+The interface is available in English and Hungarian (beta). Choose the language in the header; the choice is saved in `.arena/settings.json`. To add a language, see [Contributing translations] (docs/i18n/CONTRIBUTING-TRANSLATIONS.md).
 ```
 
 - [ ] **Step 5: CI**

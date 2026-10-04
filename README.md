@@ -87,6 +87,10 @@ Frozen protocols, including [the original evaluation specification](EVALUATION.m
 
 Run data, source datasets, weights and logs live under ignored `.arena/`. Use sanitized exports for sharing. The service binds to loopback and rejects foreign hosts/origins; do not expose the development service directly to the internet.
 
+## Languages
+
+The interface is available in English and Hungarian (beta). Choose the language in the header; the choice is saved in `.arena/settings.json`. To add a language, see [Contributing translations](docs/i18n/CONTRIBUTING-TRANSLATIONS.md).
+
 ## License
 
 Arena's original code is [MIT licensed](LICENSE). Weights, datasets and reference runtimes retain their publishers' terms; see [attribution](THIRD_PARTY.md) and [bundled notices](THIRD-PARTY-LICENSES.txt). Jev Arena is independent and unaffiliated with TypeSafe or the model authors.
