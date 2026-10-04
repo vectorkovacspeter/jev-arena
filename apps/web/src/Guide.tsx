@@ -119,11 +119,11 @@ function Value({value}:{value:unknown}){
  return <span>{String(value)}</span>
 }
 export function CaseState({text}:{text:string}){
- const { t, i18n } = useTranslation(); const lang = i18n.language;
+ const { t } = useTranslation();
  let parsed:unknown=null;try{parsed=JSON.parse(text)}catch{/* Text state. */}
  const parts=text.split(/(?=(?:Policy|Rubric|Claim|Document title|Document|Premise|Hypothesis|Proposed answer|Available tools|Source record|Query):)/g);
- return <div className="structured-state"><div className="field-label">{t("guide.caseState.label")}</div><EnglishOnly><p className="small muted">{caseStateProse}</p>
- {parsed!==null&&typeof parsed==="object"?<Value value={parsed}/>:parts.filter(Boolean).map((s,i)=>{const m=s.match(/^([^:\n]{1,30}):\s*([\s\S]*)$/);return <section key={i}>{m?<h4>{m[1]}</h4>:<h4 lang={lang}>{parts.length>1?t("guide.caseState.situation"):t("guide.caseState.inputText")}</h4>}<p>{m?m[2]:s}</p></section>})}</EnglishOnly>
+ return <div className="structured-state"><div className="field-label">{t("guide.caseState.label")}</div><EnglishOnly><p className="small muted">{caseStateProse}</p></EnglishOnly>
+ {parsed!==null&&typeof parsed==="object"?<Value value={parsed}/>:parts.filter(Boolean).map((s,i)=>{const m=s.match(/^([^:\n]{1,30}):\s*([\s\S]*)$/);return <section key={i}><h4>{m?m[1]:(parts.length>1?t("guide.caseState.situation"):t("guide.caseState.inputText"))}</h4><p>{m?m[2]:s}</p></section>})}
  <details className="explain"><summary>{t("guide.caseState.exactInput")}</summary><pre>{text}</pre></details></div>
 }
 function taskName(t:TFunction,k:string){

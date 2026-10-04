@@ -569,11 +569,11 @@
       "title": "Ügyfélszolgálati beszélgetések · ABCD",
       "task": "Feladat",
       "tasks": {
-        "combined": "Választás cselekvés, válasz és lezárás között + helyes művelet",
+        "combined": "Választás cselekvés, üzenet és lezárás között + helyes művelet",
         "action": "Művelet választása, amikor jelzik, hogy művelet következik",
-        "route": "Választás cselekvés, válasz és lezárás között"
+        "route": "Választás cselekvés, üzenet és lezárás között"
       },
-      "compareAll": "Mind a(z) {{n}} profil összehasonlítása",
+      "compareAll": "Összes profil összehasonlítása ({{n}})",
       "referenceAgreement": "Egyezés a referenciával",
       "coverage": "Lefedettség",
       "exceedsLimit": "Túllépi a tesztelt 8K-s bemeneti korlátot",
