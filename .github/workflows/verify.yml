@@ -17,7 +17,7 @@ jobs:
       - run: uv sync --frozen --extra dev
       - run: uv run python -m scripts.check_publication
       - run: uv run pytest -q
-      - run: uv run python -m arena.i18n check --quiet
+      - run: uv run --frozen python -m arena.i18n check --quiet
       - run: npm ci
       - run: npm run i18n:lint
       - run: node --experimental-strip-types --test apps/web/tests/*.test.mjs

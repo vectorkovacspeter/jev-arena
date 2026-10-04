@@ -11,10 +11,12 @@ Report text, model prompts and dataset mapping arrive in later phases (see the [
 
 ## 2. Add a new language
 
+Use `uv run --frozen` so running the tools never rewrites `uv.lock`.
+
 ```bash
-uv run python -m arena.i18n new-language pl --name Polish --native Polski
+uv run --frozen python -m arena.i18n new-language pl --name Polish --native Polski
 # translate locales/pl/ui.json (empty strings fall back to English)
-uv run python -m arena.i18n check --lang pl
+uv run --frozen python -m arena.i18n check --lang pl
 npm run build && npm run dev
 ```
 
@@ -39,7 +41,7 @@ The language appears in the header switcher automatically. The choice is stored 
 
 New languages start as `beta`; the UI shows a "beta" tag next to them. A language may be set to `complete` when:
 
-1. `uv run python -m arena.i18n check --lang <code>` reports no errors and no warnings (100.0% complete), and
+1. `uv run --frozen python -m arena.i18n check --lang <code>` reports no errors and no warnings (100.0% complete), and
 2. a native speaker has reviewed it. Set `review` in `locale.json` to the reviewer's name or handle (replacing `needs native review`) and change `status` to `complete`.
 
 ## 5. Adding UI strings as a developer
@@ -47,7 +49,7 @@ New languages start as `beta`; the UI shows a "beta" tag next to them. A languag
 1. Use `t("namespace.key")` (and `<Trans>` for strings with inline markup) from `useTranslation()`; use `useFormat()` for numbers, percentages, durations and dates. Never write literal text in JSX.
 2. Run `npm run i18n:extract`. It adds new keys to `locales/en/ui.json` only, with the English text as default.
 3. Run `npm run i18n:lint`. It fails on literal strings in JSX text and in the `title`, `aria-label`, `placeholder` and `alt` attributes. CI runs it.
-4. Other locales are not rewritten by extract. Add the new keys to them manually, or leave them to fall back to English. `uv run python -m arena.i18n check` lists what is missing.
+4. Other locales are not rewritten by extract. Add the new keys to them manually, or leave them to fall back to English. `uv run --frozen python -m arena.i18n check` lists what is missing.
 5. Keys built at runtime (for example `` t(`packs.${slug}`) ``) cannot be seen by the parser, and extract would delete them. Every dynamic key family must be listed in the `dynamic` array in `i18next-parser.config.js` (a key that is only reserved for upcoming code goes in `reserved`). Review `git diff locales/en/ui.json` after extracting to be sure nothing was removed.
 6. Backend errors: raise `ArenaError(code, message, **params)` / `ArenaHTTPError(status, code, message, **params)` and add `errors.<code>` to the catalogs. See [ARCHITECTURE.md](ARCHITECTURE.md).
 

@@ -2,7 +2,7 @@
 
 ## Locale bundles
 
-`locales/<code>/locale.json` and `locales/<code>/ui.json` (`en` is the source). `arena/i18n/locales.py` discovers them (`discover()`, `available()`), computes completeness (a plural group counts once, translated when its `_other` form is) and skips locales that are unreadable or whose `code` differs from the directory name. `arena/i18n/check.py` validates catalogs and scaffolds new ones; `arena/i18n/__main__.py` is the CLI (`check`, `new-language`).
+`locales/<code>/locale.json` and `locales/<code>/ui.json` (`en` is the source). `arena/i18n/locales.py` discovers them (`discover()`, `available()`), computes completeness (a plural group counts once, translated when its `_other` form is) and skips locales that are unreadable or whose `code` differs from the directory name. `arena/i18n/check.py` validates catalogs and scaffolds new ones; `arena/i18n/__main__.py` is the CLI (`check`, `new-language`). In Phase 1 `check` covers `locale.json` and `ui.json` only. Run Python commands with `uv run --frozen` so `uv.lock` is never rewritten. Locale codes must match `^[a-z]{2,3}(-[A-Z]{2})?$`; unreadable catalogs are reported as check errors and count as 0% complete instead of breaking the API.
 
 ## Global language setting and API
 
@@ -40,7 +40,18 @@ Keys assembled at runtime (`errors.*`, `readiness.*`, `packs.*`, `families.*`, `
 
 ## English-only content
 
-`apps/web/src/EnglishOnly.tsx` wraps text that cannot be translated yet (long prose, backend messages, evidence text). In English it only adds `lang="en"`; in other languages it also shows the `shell.englishOnly` note. Do not wrap API or case data in it.
+`apps/web/src/EnglishOnly.tsx` wraps text that cannot be translated yet: long prose, uncoded backend prose (judge reason, `fresh_status`, setup progress) and docs/evidence text. In English it only adds `lang="en"`; in other languages it also shows the `shell.englishOnly` note. API and case data is never wrapped.
+
+## Intentional English output changes
+
+Phase 1 routes all number and duration formatting through `Intl`, which changed some English output. These changes are deliberate:
+
+- Durations use a space and SI units: "12 ms", "<1 ms" (previously "0ms"), "1.25 s".
+- Signed percentage-point deltas show "0.0 pp" for zero.
+- Counts are grouped, e.g. "1,440".
+- Singular forms are fixed: "1 matching question", "1 paired case".
+- Astra verdicts are capitalised ("Correct").
+- Prediction status reads "transport error".
 
 ## Later phases
 
