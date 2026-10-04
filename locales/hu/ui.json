@@ -1,9 +1,6 @@
 {
   "common": {
-    "unavailable": "Nem elérhető",
     "notApplicable": "N/A",
-    "loading": "Betöltés…",
-    "dismiss": "Bezárás",
     "dismissError": "Hibaüzenet bezárása",
     "backTo": "← Vissza: {{target}}",
     "pp": "sz.p.",

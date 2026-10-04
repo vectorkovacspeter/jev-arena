@@ -47,6 +47,7 @@ import type { TFunction } from "i18next";
 import { initI18n, setLanguage, useTranslation, useFormat, bundledLocales } from "./i18n";
 import { Trans } from "react-i18next";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { EnglishOnly } from "./EnglishOnly";
 import { packLabel, familyLabel } from "./labels";
 
 
@@ -1607,6 +1608,8 @@ function Setup({
   const { t } = useTranslation();
   const fmt = useFormat();
   const [checking, setChecking] = useState(false);
+  // Judge-check failures carry untranslated prose from arena/judge.py, so they are shown here as English-only.
+  const [judgeError, setJudgeError] = useState("");
 
   if (!ready)
     return (
@@ -1636,11 +1639,12 @@ function Setup({
 
   async function check() {
     setChecking(true);
+    setJudgeError("");
     try {
       await api("/setup/judge-check", {});
       await onRefresh();
     } catch (e) {
-      onError(errorText(t, e));
+      setJudgeError(errorText(t, e));
     } finally {
       setChecking(false);
     }
@@ -1675,6 +1679,11 @@ function Setup({
                   ? t("setup.judgeLoginFound")
                   : t("setup.judgeLoginRequired")}
             </small>
+            {judgeError && (
+              <EnglishOnly>
+                <small role="alert">{judgeError}</small>
+              </EnglishOnly>
+            )}
           </span>
           <button
             className="button secondary compact"
@@ -1709,7 +1718,7 @@ function Setup({
       {ready.setup.message && (
         <div className="setup-progress">
           <Activity size={16} />
-          {ready.setup.message}
+          <EnglishOnly>{ready.setup.message}</EnglishOnly>
         </div>
       )}
       <div className="table-scroll">
@@ -1833,7 +1842,9 @@ function Setup({
             </div>
           </div>
           <p className="muted small">{t("setup.keysNote")}</p>
-          <p className="muted small">{ready.suites.fresh_status}</p>
+          <EnglishOnly>
+            <p className="muted small">{ready.suites.fresh_status}</p>
+          </EnglishOnly>
         </section>
       </div>
     </>

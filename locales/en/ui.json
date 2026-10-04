@@ -1,9 +1,6 @@
 {
   "common": {
-    "unavailable": "Unavailable",
     "notApplicable": "N/A",
-    "loading": "Loading…",
-    "dismiss": "Dismiss",
     "dismissError": "Dismiss error",
     "backTo": "← Back to {{target}}",
     "pp": "pp",
