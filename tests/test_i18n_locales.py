@@ -25,3 +25,19 @@ def test_repo_locales_load():
     found = locales.discover()
     assert {"en", "hu"} <= set(found)
     assert found["hu"]["status"] == "beta"
+
+META = {"name": "N", "nativeName": "N", "status": "beta", "review": "r", "dir": "ltr"}
+
+def test_malformed_catalog_does_not_break_available(tmp_path):
+    write(tmp_path, "en", META, {"a": "A"}); write(tmp_path, "hu", META, {"a": "A"})
+    (tmp_path / "hu" / "ui.json").write_text("{broken", encoding="utf-8")
+    got = {x["code"]: x["completeness"] for x in locales.available(tmp_path)}
+    assert got == {"en": 1.0, "hu": 0.0}
+
+def test_non_object_catalog_is_zero_completeness(tmp_path):
+    write(tmp_path, "en", META, {"a": "A"}); write(tmp_path, "hu", META, [1])
+    assert locales.completeness("hu", root=tmp_path) == 0.0
+
+def test_discover_skips_invalid_codes(tmp_path):
+    write(tmp_path, "en", META, {}); write(tmp_path, "EN-us", META, {}); write(tmp_path, "hu_HU", META, {})
+    assert set(locales.discover(tmp_path)) == {"en"}

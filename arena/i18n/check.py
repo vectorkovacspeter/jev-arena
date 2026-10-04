@@ -3,12 +3,11 @@ import json
 import re
 from pathlib import Path
 from typing import Literal, NamedTuple
-from arena.i18n.locales import LOCALES, base_key, completeness, discover, flatten, load_catalog
+from arena.i18n.locales import CODE_PATTERN, LOCALES, base_key, completeness, discover, flatten, load_catalog
 
 REQUIRED_META = ("code", "name", "nativeName", "status", "review", "dir")
 CATALOGS = ("ui",)  # Phase 2 adds "report".
 PLACEHOLDER = re.compile(r"\{\{\s*(\w+)\s*\}\}")
-CODE_PATTERN = re.compile(r"^[a-z]{2,3}(-[A-Z]{2})?$")
 
 class Issue(NamedTuple):
     level: Literal["error", "warning"]
@@ -28,11 +27,17 @@ def _check_meta(code: str, root: Path) -> list[Issue]:
     out = [Issue("error", code, "locale.json", k, "missing field") for k in REQUIRED_META if k not in meta]
     if meta.get("status") not in ("complete", "beta"): out.append(Issue("error", code, "locale.json", "status", "must be complete or beta"))
     if meta.get("code") != code: out.append(Issue("error", code, "locale.json", "code", "must match directory name"))
+    if not isinstance(meta.get("code"), str) or not CODE_PATTERN.match(meta["code"]): out.append(Issue("error", code, "locale.json", "code", "invalid code; must match ^[a-z]{2,3}(-[A-Z]{2})?$"))
     return out
 
 def _check_catalog(code: str, name: str, root: Path) -> list[Issue]:
     file = f"{name}.json"
-    source, target = flatten(load_catalog("en", name, root)), flatten(load_catalog(code, name, root))
+    try:
+        source, target = flatten(load_catalog("en", name, root)), flatten(load_catalog(code, name, root))
+    except (json.JSONDecodeError, UnicodeDecodeError, OSError) as e:
+        return [Issue("error", code, file, "", f"cannot read catalog: {e}")]
+    except AttributeError:
+        return [Issue("error", code, file, "", "catalog must be a JSON object")]
     out = []
     for key, value in target.items():
         if key not in source: out.append(Issue("error", code, file, key, "key not in en")); continue

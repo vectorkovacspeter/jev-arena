@@ -65,9 +65,12 @@ async def i18n_state():return {"language":i18n.get_language(),"locales":i18n.ava
 
 @app.post("/api/i18n")
 async def i18n_set(request:Request):
-    body=await request.json()
-    try:i18n.set_language(str(body.get("language","")))
-    except ValueError as e:raise ArenaHTTPError(400,"unknown_language",str(e),language=str(body.get("language","")))
+    try:body=await request.json()
+    except ValueError:body=None
+    language=body.get("language") if isinstance(body,dict) else None
+    if not isinstance(language,str):raise ArenaHTTPError(400,"unknown_language","Unknown language: "+repr(language),language=repr(language))
+    try:i18n.set_language(language)
+    except ValueError as e:raise ArenaHTTPError(400,"unknown_language",str(e),language=language)
     return await i18n_state()
 
 @app.get("/api/readiness")

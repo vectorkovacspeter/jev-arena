@@ -116,11 +116,11 @@ def test_non_string_value_is_error(tmp_path):
 
 def test_discover_skips_broken_locale(tmp_path):
     write(tmp_path, "en", {"a": "A"})
-    write(tmp_path, "good", {"a": "A"})
+    write(tmp_path, "gd", {"a": "A"})
     d = tmp_path / "broken"; d.mkdir()
     (d / "locale.json").write_text("invalid", encoding="utf-8")
     result = discover(tmp_path)
-    assert sorted(result) == ["en", "good"]
+    assert sorted(result) == ["en", "gd"]
 
 def test_discover_skips_mismatched_code(tmp_path):
     write(tmp_path, "en", {"a": "A"})
@@ -226,3 +226,18 @@ def test_non_string_falsy_value_no_extra_warning(tmp_path):
     write(tmp_path, "xx", {"a": 0})
     issues = check.check("xx", tmp_path)
     assert issues == [Issue("error", "xx", "ui.json", "a", "value must be a string")]
+
+def test_malformed_catalog_reports_single_error(tmp_path):
+    write(tmp_path, "en", {"a": "A"}); write(tmp_path, "xx", {"a": "A"})
+    (tmp_path / "xx" / "ui.json").write_text("{broken", encoding="utf-8")
+    issues = check.check("xx", tmp_path)
+    assert len(issues) == 1 and issues[0].level == "error" and issues[0].file == "ui.json"
+
+def test_non_object_catalog_reports_error(tmp_path):
+    write(tmp_path, "en", {"a": "A"}); write(tmp_path, "xx", [1])
+    assert check.check("xx", tmp_path) == [Issue("error", "xx", "ui.json", "", "catalog must be a JSON object")]
+
+def test_invalid_locale_code_is_error(tmp_path):
+    write(tmp_path, "en", {"a": "A"}); write(tmp_path, "EN_us", {"a": "A"})
+    msgs = [i for i in check.check("EN_us", tmp_path) if i.key == "code"]
+    assert len(msgs) == 1 and msgs[0].level == "error" and "invalid code" in msgs[0].message
