@@ -27,9 +27,20 @@ def _translate(args) -> int:
     print(f"{args.lang}/{args.slot}: {added} new translations, {len(tm)} in memory ({tm.path})")
     return 0
 
+def _known_slot(lang: str, slot_id: str) -> str | None:
+    """An error message when the slot is not declared in the language's datasets.yaml (so no stray TM files appear)."""
+    from arena.i18n import datasets
+    try: slots = datasets.load_slots(lang)
+    except FileNotFoundError: return f"{lang}: no datasets.yaml"
+    except ValueError as e: return f"{lang}: {e}"
+    return None if slot_id in slots else f"{lang}: no slot {slot_id!r} in datasets.yaml"
+
 def _review(args) -> int:
     import random
     from arena.i18n.memory import TranslationMemory
+    if error := _known_slot(args.lang, args.slot):
+        print(f"Error: {error}")
+        return 1
     tm = TranslationMemory(args.lang, args.slot)
     pending = [r for r in tm.rows() if not r["reviewed"] and not r.get("rejected")]
     sample = random.Random(args.seed).sample(pending, min(args.sample, len(pending)))
@@ -52,6 +63,9 @@ def _review(args) -> int:
 
 def _tm(args) -> int:
     from arena.i18n.memory import TranslationMemory
+    if error := _known_slot(args.lang, args.slot):
+        print(f"Error: {error}")
+        return 1
     tm = TranslationMemory(args.lang, args.slot)
     try:
         if args.action == "export": print(f"Exported {tm.export(args.file)} rows to {args.file}")

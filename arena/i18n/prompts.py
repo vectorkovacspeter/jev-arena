@@ -22,8 +22,6 @@ def _load(lang: str) -> dict | None:
         _cache[(root, lang)] = data if isinstance(data, dict) else None
     return _cache[(root, lang)]
 
-def clear_cache() -> None: _cache.clear()
-
 def has_language(lang: str) -> bool: return (_root() / lang / FILE).exists()
 
 def _node(lang: str, key: str):

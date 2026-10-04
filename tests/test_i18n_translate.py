@@ -291,21 +291,21 @@ def test_cli_translate_missing_english_is_an_error(tm_root, monkeypatch, capsys)
     assert "prepare English datasets first" in capsys.readouterr().out
 
 def test_cli_review_records_approvals_and_edits(tm_root, monkeypatch, capsys):
-    tm = memory.TranslationMemory("hu", "s")
+    tm = memory.TranslationMemory("hu", "scifact")
     tm.put_many(fake_rows(["a", "b", "c"]))
     answers = iter(["y", "x", "e", "Javított", "q"])
     monkeypatch.setattr("builtins.input", lambda prompt="": next(answers))
-    assert main(["review", "--lang", "hu", "--slot", "s", "--sample", "3", "--seed", "1"]) == 0
+    assert main(["review", "--lang", "hu", "--slot", "scifact", "--sample", "3", "--seed", "1"]) == 0
     out = capsys.readouterr().out
-    tm = memory.TranslationMemory("hu", "s")
+    tm = memory.TranslationMemory("hu", "scifact")
     reviewed = [r for r in tm.rows() if r["reviewed"]]
     assert len(reviewed) == 2 and any(r["tgt"] == "Javított" for r in reviewed)
     assert "Reviewed 2" in out
 
 def test_cli_tm_export(tm_root, tmp_path, capsys):
-    memory.TranslationMemory("hu", "s").put_many(fake_rows(["a"]))
+    memory.TranslationMemory("hu", "scifact").put_many(fake_rows(["a"]))
     out = tmp_path / "x.jsonl"
-    assert main(["tm", "export", "--lang", "hu", "--slot", "s", str(out)]) == 0
+    assert main(["tm", "export", "--lang", "hu", "--slot", "scifact", str(out)]) == 0
     assert json.loads(out.read_text(encoding="utf-8").splitlines()[0])["tgt"] == "[hu] a"
 
 # --- fix round 1: JSON states, resilient prepare, TM hygiene ---------------------
@@ -314,14 +314,16 @@ JSON_SLOT = Slot(source="translated", pack="JevBench public", family="JevBench",
 
 def json_case():
     state = {"status": "overdue", "next_step": "escalate_to_manager", "order": "ORD 4711 A", "policy": "If status is overdue, escalate.",
-             "owner": "Alice", "ticket": "TCK-12", "flag": "needs_followup", "note": "Waited 3 days for a reply.", "count": 3, "tags": ["urgent", "VIP"]}
+             "owner": "Alice", "assignee": "Alex Moreno", "role": "assistant", "ticket": "TCK-12", "flag": "needs_followup", "note": "Waited 3 days for a reply.", "count": 3, "tags": ["urgent", "VIP"]}
     return Case(id="jevbench-j1", cluster="jevbench-j1", pack="JevBench public", family="tickets", state=json.dumps(state),
                 question=Question(id="decision", kind="choice", text="What next?", labels=["escalate_to_manager", "close_ticket"]),
                 gold="escalate_to_manager", label_status="public")
 
 @pytest.mark.parametrize("value,kind", [("escalate_to_manager", "label"), ("overdue", "text"), ("If status is overdue, escalate.", "text"),
                                         ("Waited 3 days for a reply.", "text"), ("ORD 4711 A", "keep"), ("TCK-12", "keep"), ("needs_followup", "keep"),
-                                        ("VIP", "keep"), ("Alice", "keep"), ("ORD4711", "keep"), ("", "keep"), ("A B-2", "keep")])
+                                        ("VIP", "keep"), ("Alice", "keep"), ("ORD4711", "keep"), ("", "keep"), ("A B-2", "keep"),
+                                        ("Alex Moreno", "keep"), ("Alex L.", "keep"), ("user", "keep"), ("assistant", "keep"), ("system", "keep"),
+                                        ("Head of Marketing", "text"), ("users", "text"), ("Ask the user.", "text")])
 def test_json_value_kind(value, kind):
     assert translated.json_value_kind(value, {"escalate_to_manager", "close_ticket"}) == kind
 
@@ -336,8 +338,9 @@ def test_json_state_maps_labels_keeps_codes_and_records_them(tm_root):
     assert state["next_step"] == "[hu]_escalate_to_manager" == built.gold
     assert state["status"] == "[hu] overdue" and state["policy"] == "[hu] If status is overdue, escalate." and state["note"] == "[hu] Waited 3 days for a reply."
     assert state["order"] == "ORD 4711 A" and state["ticket"] == "TCK-12" and state["flag"] == "needs_followup" and state["owner"] == "Alice"
+    assert state["assignee"] == "Alex Moreno" and state["role"] == "assistant"
     assert state["count"] == 3 and state["tags"] == ["[hu] urgent", "VIP"]
-    assert built.provenance["untranslated_json_values"] == ["ORD 4711 A", "Alice", "TCK-12", "needs_followup", "VIP"]
+    assert built.provenance["untranslated_json_values"] == ["ORD 4711 A", "Alice", "Alex Moreno", "assistant", "TCK-12", "needs_followup", "VIP"]
     assert built.provenance["needs_review"] is True
 
 def test_hu_machine_translated_slots_need_review():
@@ -438,12 +441,12 @@ def test_import_clears_resolved_pending_entries(tm_root, tmp_path):
     assert not pending.exists()
 
 def test_review_no_then_edit_or_reject(tm_root, monkeypatch, capsys):
-    tm = memory.TranslationMemory("hu", "s")
+    tm = memory.TranslationMemory("hu", "scifact")
     tm.put_many(fake_rows(["a", "b"]))
     answers = iter(["n", "Javítva", "n", ""])
     monkeypatch.setattr("builtins.input", lambda prompt="": next(answers))
-    assert main(["review", "--lang", "hu", "--slot", "s", "--sample", "2"]) == 0
-    tm = memory.TranslationMemory("hu", "s")
+    assert main(["review", "--lang", "hu", "--slot", "scifact", "--sample", "2"]) == 0
+    tm = memory.TranslationMemory("hu", "scifact")
     edited = [r for r in tm.rows() if r["tgt"] == "Javítva"]
     rejected = [r for r in tm.rows() if r.get("rejected")]
     assert len(edited) == 1 and edited[0]["reviewed"] and len(rejected) == 1 and not rejected[0]["reviewed"]
@@ -464,6 +467,17 @@ def test_rejected_rows_are_not_retranslated_or_built(tm_root):
     assert "Lázvizsgálat" in built.state
 
 @pytest.mark.parametrize("label,target,expected", [("close_ticket", "Jegy lezárása.", "jegy_lezárása"), ("close_ticket", '"jegy: lezárás, most"', "jegy_lezárás_most"),
-                                                   ("Review", " Felülvizsgálat; ", "Felülvizsgálat"), ("Review", "'Átnézés.'", "Átnézés")])
+                                                   ("Review", " Felülvizsgálat; ", "Felülvizsgálat"), ("Review", "'Átnézés.'", "Átnézés"),
+                                                   ("Review", "Felülvizsgálat?", "Felülvizsgálat"), ("Stop", "Állj!", "Állj"), ("close_ticket", "Jegy lezárása?!", "jegy_lezárása")])
 def test_localize_label_punctuation(label, target, expected):
     assert translated.localize_label(label, target) == expected
+
+
+def test_cli_tm_and_review_reject_unknown_slots(tm_root, capsys, tmp_path):
+    assert main(["tm", "export", "--lang", "hu", "--slot", "nope", str(tmp_path / "x.jsonl")]) == 1
+    assert capsys.readouterr().out.strip().splitlines() == ["Error: hu: no slot 'nope' in datasets.yaml"]
+    assert main(["review", "--lang", "hu", "--slot", "nope"]) == 1
+    assert capsys.readouterr().out.strip().splitlines() == ["Error: hu: no slot 'nope' in datasets.yaml"]
+    assert main(["tm", "export", "--lang", "zz", "--slot", "nope", str(tmp_path / "x.jsonl")]) == 1
+    assert capsys.readouterr().out.startswith("Error: zz: no datasets.yaml")
+    assert not tm_root.exists()

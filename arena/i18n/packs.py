@@ -9,7 +9,7 @@ from collections import defaultdict
 from typing import Callable
 from arena.config import DATASETS, digest, write_json
 from arena.contracts import Case
-from arena.i18n.datasets import Slot, load_slots
+from arena.i18n.datasets import Slot, expected_counts, load_slots
 from arena.i18n.engines import EngineError, Unavailable
 
 # English pack name -> file name, one file per English pack.
@@ -59,6 +59,13 @@ def _build(lang: str, slot_id: str, slot: Slot, progress: Callable[[str], None])
         return translated.prepare_slot(lang, slot_id, slot, progress)
     raise NotImplementedError(f"{slot.source} slots are not buildable yet")
 
+def _pack_expected(lang: str, slots: dict[str, Slot], pack_file: str, ids: list[str], written: int) -> int:
+    """The Full-preset size of the pack when every slot of it is present; otherwise the per-slot checks stand alone."""
+    pack = next(name for name, file in PACK_FILES.items() if file == pack_file)
+    members = [sid for sid, slot in slots.items() if slot.pack == pack and slot.source != "missing"]
+    complete = set(members) == set(ids) and all(slots[sid].expected() is not None for sid in members)
+    return expected_counts(lang, slots)[pack] if complete else written
+
 def prepare_language(lang: str, progress: Callable[[str], None] | None = None, only: str | None = None) -> dict[str, int]:
     """Build the language's native and translated slots into one file per English pack.
 
@@ -71,6 +78,8 @@ def prepare_language(lang: str, progress: Callable[[str], None] | None = None, o
     say = progress or (lambda message: None)
     if only is not None and only not in SOURCES: raise ValueError(f"only must be one of {SOURCES}")
     slots = load_slots(lang)
+    from arena.i18n.translated import LabelCollision, MissingTranslations
+    recoverable = (MissingTranslations, LabelCollision, EngineError)
     built: dict[str, dict[str, list[Case]]] = defaultdict(dict)
     for slot_id, slot in slots.items():
         if slot.source == "missing" or (only and slot.source != only): continue
@@ -78,7 +87,7 @@ def prepare_language(lang: str, progress: Callable[[str], None] | None = None, o
         if slot.pack not in PACK_FILES: raise ValueError(f"{slot_id}: no pack file for pack {slot.pack!r}")
         try: cases = _build(lang, slot_id, slot, say)
         except (NotImplementedError, Unavailable) as e: say(f"{slot_id}: skipped ({e})"); continue
-        except (EngineError, ValueError) as e:  # LabelCollision, MissingTranslations, engine failures: the other slots still build
+        except recoverable as e:  # the other slots still build; anything else is a bug and propagates
             if slot.source != "translated": raise
             say(f"{slot_id}: failed, skipped ({type(e).__name__}: {e})"); continue
         if slot.expected() is not None and len(cases) != slot.expected():
@@ -94,10 +103,13 @@ def prepare_language(lang: str, progress: Callable[[str], None] | None = None, o
             if sid in slots and sid not in fresh_slots and slots[sid].source != "missing": by_slot[sid].append(case)
         by_slot.update(fresh_slots)
         ids = sorted(by_slot, key=order.index)
+        for sid in ids:  # kept slots too: a stale pack file must not slip through
+            if slots[sid].expected() is not None and len(by_slot[sid]) != slots[sid].expected():
+                raise ValueError(f"{sid}: expected {slots[sid].expected()}, got {len(by_slot[sid])}")
         cases = [c for sid in ids for c in by_slot[sid]]
         licences = {sid: slots[sid].licence for sid in ids}
         revisions = {slots[sid].repo: slots[sid].revision for sid in ids if slots[sid].repo}
-        save(lang, pack_file, cases, sum(len(by_slot[sid]) for sid in ids), licences, revisions)
+        save(lang, pack_file, cases, _pack_expected(lang, slots, pack_file, ids, len(cases)), licences, revisions)
         say(f"{lang}/{pack_file}: {len(cases)} cases frozen")
         result[pack_file] = len(cases)
     return result

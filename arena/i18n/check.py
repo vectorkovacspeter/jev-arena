@@ -165,6 +165,14 @@ def _check_datasets(code: str, root: Path) -> list[Issue]:
         en_pack = en_slots[slot_id].get("pack") if isinstance(en_slots[slot_id], dict) else None
         if slot.pack != en_pack: out.append(Issue("error", code, file, f"{slot_id}.pack", f"pack {slot.pack!r} != en {en_pack!r}"))
         if slot.label_group and slot.label_group not in groups: out.append(Issue("error", code, file, f"{slot_id}.label_group", f"unknown label group {slot.label_group!r}"))
+        elif slot.label_group:
+            ids = set(groups[slot.label_group])
+            for raw, label_id in slot.source_label_ids.items():
+                if label_id not in ids: out.append(Issue("error", code, file, f"{slot_id}.source_label_ids", f"{raw!r} maps to {label_id!r}, not an id in labels.{slot.label_group}"))
+            for raw in slot.drop_labels:  # a dropped source label must not be one the question still offers
+                label_id = slot.source_label_ids.get(raw, raw) if slot.source_label_ids else raw
+                if raw in slot.source_label_ids or label_id in ids:
+                    out.append(Issue("error", code, file, f"{slot_id}.drop_labels", f"{raw!r} is dropped but maps to option {label_id!r} of labels.{slot.label_group}"))
         for name in ("question", "state"):
             key = getattr(slot, name)
             if key and key not in keys: out.append(Issue("error", code, file, f"{slot_id}.{name}", f"unknown prompt key {key!r}"))

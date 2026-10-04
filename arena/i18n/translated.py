@@ -82,11 +82,18 @@ def _code_token(token: str) -> bool:
     return (not letters or bool(_CODE_TOKEN.search(token)) or (len(letters) >= 2 and token.isupper())
             or (len(letters) == 1 and token.strip(".,;:!?()[]'\"").isupper()))
 
+CHAT_ROLES = frozenset({"user", "assistant", "system"})  # protocol tokens in chat transcripts, not prose
+
+def _title_case_run(tokens: list[str]) -> bool:
+    """'Alex Moreno', 'Alex L.': every token with letters starts with an uppercase letter (names, titles)."""
+    firsts = [m.group() for t in tokens if (m := re.search(r"[^\W\d_]", t))]
+    return bool(firsts) and all(c.isupper() for c in firsts)
+
 def json_value_kind(value: str, label_ids) -> str:
-    """'label' (a choice label id), 'text' (translate) or 'keep' (code-like or otherwise not safely translatable)."""
+    """'label' (a choice label id), 'text' (translate) or 'keep' (code-like, a name, a chat role or otherwise not safely translatable)."""
     if value in label_ids: return "label"
     tokens = value.split()
-    if not tokens: return "keep"
+    if not tokens or value.strip() in CHAT_ROLES or _title_case_run(tokens): return "keep"
     if len(tokens) == 1:
         word = tokens[0]
         return "text" if word.isalpha() and word.islower() else "keep"   # 'overdue' yes; 'ORD4711', 'escalate_to_manager', 'Alice' no
@@ -115,12 +122,12 @@ def translatable_label(label: str) -> bool:
     """Codes such as 'P1', 'A' or 'SEV2' stay as they are; words and snake-case ids are translated."""
     return len(re.findall(r"[^\W\d_]", label)) >= 2 and not re.search(r"\d", label) and not label.isupper()
 
-EDGE_PUNCTUATION = ".,;:'\""
+EDGE_PUNCTUATION = ".,;:!?'\""
 
 def localize_label(label: str, target: str) -> str:
-    """Strip edge punctuation (.,;:'" and spaces); snake-case ids become lowercase_with_underscores, internal punctuation included."""
+    """Strip edge punctuation (.,;:!?'" and spaces); snake-case ids become lowercase_with_underscores, internal punctuation included."""
     target = target.strip().strip(EDGE_PUNCTUATION + " ").strip()
-    if "_" in label and " " not in label: target = re.sub(r"[\s.,;:'\"_]+", "_", target.lower()).strip("_")
+    if "_" in label and " " not in label: target = re.sub(r"[\s.,;:!?'\"_]+", "_", target.lower()).strip("_")
     return target
 
 def _native_labels(slot: Slot, case: Case) -> bool:

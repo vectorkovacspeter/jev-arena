@@ -7,7 +7,7 @@ import pytest
 import yaml
 from pydantic import ValidationError
 from arena import importers, suites
-from arena.contracts import Case
+from arena.contracts import Case, Question
 from arena.i18n import check, datasets, native, packs
 from arena.i18n.datasets import Slot
 from arena.i18n.prompts import labels
@@ -169,6 +169,31 @@ def test_prepare_language_builds_native_slots_into_pack_files(offline, tmp_path,
     result = packs.prepare_language("hu", messages.append, only="native")
     assert result["classification"] == 12
 
+def test_prepare_language_skips_known_translation_failures_but_propagates_bugs(offline, tmp_path, monkeypatch):
+    from arena.i18n import translated
+    slots = {"sst2": sentiment_slot(), "banking77": Slot(source="translated", pack="Classification", family="BANKING77", sample=500)}
+    monkeypatch.setattr(packs, "load_slots", lambda lang: slots)
+    def missing(*a, **kw): raise translated.MissingTranslations(3, "banking77")
+    monkeypatch.setattr(translated, "prepare_slot", missing)
+    messages = []
+    assert packs.prepare_language("hu", messages.append) == {"classification": 6}
+    assert any(m.startswith("banking77: failed, skipped (MissingTranslations") for m in messages)
+    def bug(*a, **kw): raise ValueError("a bug, not a translation gap")
+    monkeypatch.setattr(translated, "prepare_slot", bug)
+    with pytest.raises(ValueError, match="a bug"): packs.prepare_language("hu", messages.append)
+
+def test_prepare_language_checks_kept_slots_and_full_pack_size(offline, tmp_path, monkeypatch):
+    slots = {"sst2": sentiment_slot(), "banking77": Slot(source="translated", pack="Classification", family="BANKING77", sample=2)}
+    monkeypatch.setattr(packs, "load_slots", lambda lang: slots)
+    stale = Case(id="hu:banking77-1", cluster="hu:banking77-1", pack="Classification", family="BANKING77", language="hu", state="x",
+                 question=Question(id="label", kind="choice", text="?", labels=["a", "b"]), gold="a", provenance={"slot": "banking77"})
+    packs.save("hu", "classification", [stale], 1)
+    with pytest.raises(ValueError, match="banking77: expected 2, got 1"): packs.prepare_language("hu", only="native")
+    second = stale.model_copy(update={"id": "hu:banking77-2", "cluster": "hu:banking77-2"})
+    packs.save("hu", "classification", [stale, second], 2)
+    assert packs.prepare_language("hu", only="native") == {"classification": 8}  # = expected_counts: 6 + 2
+    assert packs._pack_expected("hu", slots, "classification", ["sst2"], 6) == 6  # incomplete pack: per-slot checks only
+
 def test_prepare_language_rejects_english():
     with pytest.raises(ValueError, match="importers"): packs.prepare_language("en")
 
@@ -200,6 +225,16 @@ def test_check_unknown_label_group_and_prompt_key(tmp_path):
         check.Issue("error", "xx", "datasets.yaml", "sst2.question", "unknown prompt key 'importers.nope'"),
         check.Issue("error", "xx", "datasets.yaml", "sst2.state", "unknown prompt key 'importers'"),
     ]
+
+def test_check_label_ids_and_drop_labels_against_the_label_group(tmp_path):
+    write_locale(tmp_path, "en", PROMPTS, {"sst2": NATIVE})
+    write_locale(tmp_path, "xx", PROMPTS, {"sst2": {**NATIVE, "source_label_ids": {"0": "negative", "1": "positiv", "2": "positive"}, "drop_labels": ["2", "neutral"]}})
+    assert check.check("xx", tmp_path) == [
+        check.Issue("error", "xx", "datasets.yaml", "sst2.source_label_ids", "'1' maps to 'positiv', not an id in labels.sentiment"),
+        check.Issue("error", "xx", "datasets.yaml", "sst2.drop_labels", "'2' is dropped but maps to option 'positive' of labels.sentiment"),
+    ]
+    write_locale(tmp_path, "xx", PROMPTS, {"sst2": {**NATIVE, "drop_labels": ["positive", "neutral"]}})
+    assert [i.key for i in check.check("xx", tmp_path)] == ["sst2.drop_labels"]
 
 def test_check_schema_errors_and_slot_sets(tmp_path):
     write_locale(tmp_path, "en", PROMPTS, {"sst2": NATIVE, "abcd": {"source": "missing", "pack": "ABCD next action", "family": "ABCD", "reason": "r"}})
@@ -242,3 +277,19 @@ def test_cli_prepare(monkeypatch, capsys):
 def test_hu_sst2_uses_balanced_train_split():
     slot = datasets.load_slots("hu")["sst2"]
     assert slot.files == ["data/train.json"] and slot.drop_labels == ["neutral"] and (slot.sample, slot.seed) == (500, 5090)
+
+
+def test_tsv_reader_keeps_quoted_newlines_and_unescapes_double_quoting(tmp_path):
+    from arena.i18n.native import read_rows
+    f = tmp_path / "train.tsv"
+    f.write_bytes('index_id\tcategory\ttext\n'
+                  '1\tgeography\t"Első sor\nmásodik sor"\n'
+                  '2\tentertainment\t"""""""Nagyon cuki"""" mondta."""\n'
+                  '3\tscience\t"""A neve Föld"""", tette hozzá."""\n'
+                  '4\tgeography\tSima szöveg, "idézettel" a közepén.\n'.encode("utf-8"))
+    rows = read_rows(f)
+    assert [r["index_id"] for r in rows] == ["1", "2", "3", "4"]
+    assert rows[0]["text"] == "Első sor\nmásodik sor"
+    assert rows[1]["text"] == '"Nagyon cuki" mondta.'
+    assert rows[2]["text"] == 'A neve Föld", tette hozzá.'
+    assert rows[3]["text"] == 'Sima szöveg, "idézettel" a közepén.'

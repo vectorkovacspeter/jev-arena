@@ -15,10 +15,6 @@ from arena.i18n.locales import LOCALES
 
 FILE = "datasets.yaml"
 
-class LabelEntry(BaseModel):
-    id: str
-    label: str
-
 class Slot(BaseModel):
     model_config = ConfigDict(extra="forbid")
     source: Literal["native", "translated", "generated", "missing"]
@@ -76,10 +72,10 @@ def _generated_count(slot_id: str, lang: str) -> int | None:
     generators = {"fresh": fresh, "robustness": robustness}
     return len(generators[slot_id](lang=lang)) if slot_id in generators else None  # episodes are dynamic
 
-def expected_counts(lang: str) -> dict[str, int]:
+def expected_counts(lang: str, slots: dict[str, Slot] | None = None) -> dict[str, int]:
     """Pack name -> expected cases in the Full preset. Missing slots, dynamic episodes and slots without a count are left out."""
     counts: dict[str, int] = {}
-    for slot_id, slot in load_slots(lang).items():
+    for slot_id, slot in (load_slots(lang) if slots is None else slots).items():
         if slot.source == "missing": continue
         n = _generated_count(slot_id, lang) if slot.source == "generated" else slot.expected()
         if n is None: continue

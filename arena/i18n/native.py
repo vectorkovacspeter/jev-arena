@@ -6,7 +6,9 @@ and turned into localized choice cases whose labels come from prompts.yaml. Neve
 """
 from __future__ import annotations
 import csv
+import io
 import json
+import re
 from pathlib import Path
 import pyarrow.parquet as pq
 from huggingface_hub import hf_hub_download
@@ -22,12 +24,24 @@ def download(lang: str, slot: Slot, name: str) -> Path:
     local = DATASETS / lang / "raw" / slot.repo.replace("/", "--")
     return Path(hf_hub_download(slot.repo, name, repo_type="dataset", revision=slot.revision, local_dir=local))
 
+QUOTED = re.compile(r'"(?:[^"]|"")*"', re.S)
+
+def unquote(value):
+    """One unescape pass for cells that are CSV-quoted twice, as in SIB-200's TSV.
+
+    After the csv reader such a cell is still one complete quoted field (it starts and ends with a quote
+    and every inner quote is doubled); ordinary text with quotes inside never matches."""
+    if isinstance(value, str) and len(value) >= 2 and QUOTED.fullmatch(value):
+        return value[1:-1].replace('""', '"')
+    return value
+
 def read_rows(path: Path) -> list[dict]:
     suffix = path.suffix.lower()
     if suffix == ".parquet": return pq.read_table(path).to_pylist()
-    text = path.read_text(encoding="utf-8")
+    text = path.read_bytes().decode("utf-8")  # no newline translation: the csv reader handles quoted line breaks
     if suffix in (".tsv", ".csv"):
-        return list(csv.DictReader(text.splitlines(), delimiter="\t" if suffix == ".tsv" else ","))
+        reader = csv.DictReader(io.StringIO(text, newline=""), delimiter="\t" if suffix == ".tsv" else ",")
+        return [{key: unquote(value) for key, value in row.items()} for row in reader]
     if suffix == ".jsonl": return [json.loads(line) for line in text.splitlines() if line.strip()]
     if suffix == ".json":
         try: data = json.loads(text)
