@@ -452,6 +452,139 @@
     "typesafeAccount": "TypeSafe account",
     "keysNote": "Keys stay on this machine. Reports exclude credentials and raw CLI logs. Third-party datasets are downloaded from their original sources."
   },
+  "guide": {
+    "takeaways": {
+      "title": "What builders should take away",
+      "lead": "Choose for your workload, then test the complete workflow.",
+      "localFast": "Local can be fast and competitive",
+      "smallModels": "Small models can win a narrow job",
+      "checkLimits": "Check input length and number of choices first",
+      "moreContext": "More context is not automatically better",
+      "validate": "Validate answers and confidence",
+      "taskMix": "The task mix changes the ranking",
+      "accuracyTrap": "90.6% accuracy can find zero relevant documents",
+      "compareNews": "Compare news results →",
+      "inspectBanking": "Inspect banking capacity →",
+      "compareRelevance": "Compare document relevance →",
+      "compareModels": "Compare model requirements →",
+      "exploreAbcd": "Explore the support-conversation test →"
+    },
+    "model": {
+      "officialSource": "Official source ↗",
+      "parameters": "Parameters",
+      "builtFrom": "Built from",
+      "availability": "Availability & license",
+      "repositoryCreated": "Repository first created",
+      "gpuMemory": "GPU memory after loading",
+      "precision": "Precision used",
+      "context": "Context in our tests",
+      "choiceLimit": "Choice limit",
+      "loadTime": "Recorded load time",
+      "notVerified": "Not verified",
+      "notRecorded": "Not recorded",
+      "notApplicableOrRecorded": "Not applicable / not recorded",
+      "gib": "{{n}} GiB",
+      "seconds": "{{n}} seconds",
+      "exactVersion": "Exact evaluated version"
+    },
+    "sources": {
+      "title": "What makes up the {{n}} cases?",
+      "table": {
+        "group": "Test group",
+        "cases": "Cases / model",
+        "answerSource": "Where the answer comes from",
+        "tests": "What it tests"
+      },
+      "keys": {
+        "publicKey": "Public answer key",
+        "publicKeys": "Public answer keys",
+        "aiReference": "AI-generated reference answers",
+        "relevanceLabels": "Public relevance labels",
+        "ruleDerived": "Answers calculated from explicit rules"
+      },
+      "groups": {
+        "relevance": "Document relevance",
+        "policy": "Arena policy tests"
+      },
+      "tests": {
+        "jevbench": "Decision, policy and reasoning questions.",
+        "typed": "400 situations × five questions. Teacher agreement is separate from the headline score.",
+        "classification": "500 each: sentiment (SST-2), news (AG News), banking intent (BANKING77).",
+        "multilingual": "XNLI and MASSIVE, five languages. Related translations are not independent scenarios.",
+        "relevance": "SciFact: whether a retrieved document is relevant to a claim. Many negatives; inspect ranking scores too.",
+        "policy": "Our generated cases across eight policy templates. Useful controlled checks, not broad human validation.",
+        "changed": "Variations of the policy cases: rewording, distractions, reordered choices and changes that should change the answer."
+      },
+      "answerKeyTitle": "Answer key first; Astra is a separate spot-check",
+      "abcdTitle": "ABCD is a second experiment",
+      "glossaryTitle": "Terms in plain English"
+    },
+    "glossary": {
+      "accuracy": {
+        "term": "Answer accuracy · same questions",
+        "definition": "How often the model selected the answer-key label, using identical questions for every model. This is the simple comparison shown on the overview."
+      },
+      "strict": {
+        "term": "Correct + usable output",
+        "definition": "The answer is right AND the output passes Arena’s software checks, including probabilities adding to one within the declared tolerance. This was called strict accuracy."
+      },
+      "matched": {
+        "term": "Matched",
+        "definition": "The same questions for every model. It describes the comparison set, not another kind of answer."
+      },
+      "p50": {
+        "term": "Typical response time · P50",
+        "definition": "The median: half the measured requests were faster and half were slower. P95 is the point below which 95% finished."
+      },
+      "coverage": {
+        "term": "Valid coverage",
+        "definition": "The fraction of all planned cases returning a usable output, whether right or wrong. Unsupported cases and failed requests lower it."
+      },
+      "teacher": {
+        "term": "Teacher labels",
+        "definition": "Target answers produced by another AI model or an average of AI judgments. Agreement with them is not independent proof of correctness."
+      },
+      "perturbations": {
+        "term": "Changed-input checks · perturbations",
+        "definition": "Test whether small harmless edits preserve an answer, and whether changing a decisive fact changes the answer appropriately."
+      },
+      "reliability": {
+        "term": "Confidence reliability",
+        "definition": "When a model says roughly 80% confidence, is it right roughly 80% of the time? Below the ideal line means overconfident; above means underconfident."
+      }
+    },
+    "caseState": {
+      "label": "Information given to every model",
+      "situation": "Situation",
+      "inputText": "Input text",
+      "exactInput": "Exact input text"
+    },
+    "breakdown": {
+      "title": "Different jobs, different strengths",
+      "task": "Task",
+      "questions": "Questions",
+      "xnli": "Statement agreement across languages · XNLI"
+    },
+    "abcd": {
+      "title": "Support conversations · ABCD",
+      "task": "Task",
+      "tasks": {
+        "combined": "Choose whether to act, speak or finish + correct action",
+        "action": "Choose an action when told an action is due",
+        "route": "Choose whether to act, speak or finish"
+      },
+      "compareAll": "Compare all {{n}} profiles",
+      "referenceAgreement": "Reference agreement",
+      "coverage": "Coverage",
+      "exceedsLimit": "Exceeds tested 8K input limit",
+      "supported": "{{supported}} / {{planned}} supported",
+      "unsupportedCount": "{{n}} unsupported",
+      "rankingTitle": "The ranking depends on the decision",
+      "speedTitle": "Long inputs changed the speed comparison",
+      "noWinnerTitle": "No unique long-context winner",
+      "scopeTitle": "Scope, audit and cost"
+    }
+  },
   "abcd": {
     "intro": "Frozen ABCD assessment · 300 conversations, 2,400 natural input variants and 144 separate synthetic controls. Each model has up to 2,544 saved records. Browsing makes no model calls.",
     "errors": {

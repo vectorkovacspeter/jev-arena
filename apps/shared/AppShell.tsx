@@ -38,6 +38,8 @@ type AppShellProps<Id extends string> = {
 };
 
 const navigationPreference = 'taia:navigation-collapsed';
+// Brand name: never translated.
+const brandName = 'The AI Automators';
 
 /** Shared frame for TAIA micro-apps. Keep application workflows in children. */
 export function AppShell<Id extends string>({
@@ -112,7 +114,7 @@ export function AppShell<Id extends string>({
     </aside>
     <div className="taia-body">
       <main id="taia-main" className="taia-content" tabIndex={-1}>{children}</main>
-      <footer className="taia-footer"><span>The AI Automators <span>/</span> {appName}</span><span>{footerNote}</span></footer>
+      <footer className="taia-footer"><span>{brandName} <span>/</span> {appName}</span><span>{footerNote}</span></footer>
     </div>
   </div>;
 }

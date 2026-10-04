@@ -931,7 +931,8 @@ tbody tr.row-selected {
   display: block;
   color: #9f9fa3;
 }
-.analysis-panel > .muted {
+.analysis-panel > .muted,
+.analysis-panel > [lang="en"] > .muted:not(.english-only) {
   font-size: 11px;
   line-height: 1.8;
 }

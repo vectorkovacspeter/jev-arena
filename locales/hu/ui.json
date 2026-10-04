@@ -452,6 +452,139 @@
     "typesafeAccount": "TypeSafe-fiók",
     "keysNote": "A kulcsok ezen a gépen maradnak. A jelentések nem tartalmaznak hitelesítő adatokat és nyers CLI-naplókat. A külső adatkészleteket az eredeti forrásukból töltjük le."
   },
+  "guide": {
+    "takeaways": {
+      "title": "Tanulságok fejlesztőknek",
+      "lead": "A saját feladataidhoz válassz, aztán teszteld a teljes munkafolyamatot.",
+      "localFast": "A helyi modell is lehet gyors és versenyképes",
+      "smallModels": "Egy szűk feladatban a kis modellek is nyerhetnek",
+      "checkLimits": "Először a bemenet hosszát és a választási lehetőségek számát ellenőrizd",
+      "moreContext": "A több kontextus nem feltétlenül jobb",
+      "validate": "Ellenőrizd a válaszokat és a magabiztosságot",
+      "taskMix": "A feladatok összetétele megváltoztatja a rangsort",
+      "accuracyTrap": "90,6%-os pontosság mellett is előfordulhat, hogy egyetlen releváns dokumentumot sem talál meg",
+      "compareNews": "Hírtéma-eredmények összehasonlítása →",
+      "inspectBanking": "Banki kapacitás vizsgálata →",
+      "compareRelevance": "Dokumentumrelevancia összehasonlítása →",
+      "compareModels": "Modellkövetelmények összehasonlítása →",
+      "exploreAbcd": "Az ügyfélszolgálati beszélgetéses teszt felfedezése →"
+    },
+    "model": {
+      "officialSource": "Hivatalos forrás ↗",
+      "parameters": "Paraméterek",
+      "builtFrom": "Erre épül",
+      "availability": "Elérhetőség és licenc",
+      "repositoryCreated": "A tároló első létrehozása",
+      "gpuMemory": "GPU-memória betöltés után",
+      "precision": "Használt numerikus pontosság",
+      "context": "Kontextus a tesztjeinkben",
+      "choiceLimit": "Választási lehetőségek korlátja",
+      "loadTime": "Rögzített betöltési idő",
+      "notVerified": "Nem ellenőrzött",
+      "notRecorded": "Nincs rögzítve",
+      "notApplicableOrRecorded": "Nem értelmezhető / nincs rögzítve",
+      "gib": "{{n}} GiB",
+      "seconds": "{{n}} másodperc",
+      "exactVersion": "A kiértékelt pontos verzió"
+    },
+    "sources": {
+      "title": "Miből áll össze a {{n}} eset?",
+      "table": {
+        "group": "Tesztcsoport",
+        "cases": "Eset / modell",
+        "answerSource": "Honnan származik a válasz",
+        "tests": "Mit tesztel"
+      },
+      "keys": {
+        "publicKey": "Nyilvános válaszkulcs",
+        "publicKeys": "Nyilvános válaszkulcsok",
+        "aiReference": "MI által generált referenciaválaszok",
+        "relevanceLabels": "Nyilvános relevanciacímkék",
+        "ruleDerived": "Kifejezett szabályokból számított válaszok"
+      },
+      "groups": {
+        "relevance": "Dokumentumrelevancia",
+        "policy": "Arena szabályzati tesztek"
+      },
+      "tests": {
+        "jevbench": "Döntési, szabályzati és következtetési kérdések.",
+        "typed": "400 helyzet × öt kérdés. Az MI-tanárokkal való egyezés külön szerepel, nem része a fő pontszámnak.",
+        "classification": "Mindegyikből 500: hangulat (SST-2), hírek (AG News), banki szándék (BANKING77).",
+        "multilingual": "XNLI és MASSIVE, öt nyelven. Az egymáshoz tartozó fordítások nem független forgatókönyvek.",
+        "relevance": "SciFact: releváns-e egy visszakeresett dokumentum egy állításhoz. Sok a negatív eset; a rangsorolási pontszámokat is nézd meg.",
+        "policy": "Általunk generált esetek nyolc szabályzatsablonból. Hasznos, kontrollált ellenőrzések, de nem széles körű emberi validálás.",
+        "changed": "A szabályzati esetek változatai: átfogalmazás, figyelemelterelő részletek, átrendezett választási lehetőségek és olyan módosítások, amelyeknek meg kell változtatniuk a választ."
+      },
+      "answerKeyTitle": "Elsőként a válaszkulcs; az Astra külön szúrópróba",
+      "abcdTitle": "Az ABCD egy második kísérlet",
+      "glossaryTitle": "Fogalmak közérthetően"
+    },
+    "glossary": {
+      "accuracy": {
+        "term": "Válaszpontosság · ugyanazok a kérdések",
+        "definition": "Milyen gyakran választotta a modell a válaszkulcs szerinti címkét, minden modellnél ugyanazokon a kérdéseken. Ez az áttekintésben látható egyszerű összehasonlítás."
+      },
+      "strict": {
+        "term": "Helyes + használható kimenet",
+        "definition": "A válasz helyes, ÉS a kimenet átmegy az Arena szoftveres ellenőrzésein, beleértve azt is, hogy a valószínűségek összege a megadott tűréshatáron belül egy. Korábban ezt szigorú pontosságnak hívtuk."
+      },
+      "matched": {
+        "term": "Egyeztetett",
+        "definition": "Minden modellnél ugyanazok a kérdések. Az összehasonlításban használt kérdéskészletet írja le, nem egy másfajta választ."
+      },
+      "p50": {
+        "term": "Jellemző válaszidő · P50",
+        "definition": "A medián: a mért kérések fele gyorsabb, fele lassabb volt. A P95 az az érték, amely alatt a kérések 95%-a befejeződött."
+      },
+      "coverage": {
+        "term": "Érvényes lefedettség",
+        "definition": "Az összes tervezett eset közül azok aránya, amelyek használható kimenetet adtak, akár helyes, akár helytelen a válasz. A nem támogatott esetek és a sikertelen kérések csökkentik."
+      },
+      "teacher": {
+        "term": "MI-tanár címkék",
+        "definition": "Egy másik MI-modell által előállított célválaszok, vagy MI-ítéletek átlaga. A velük való egyezés nem független bizonyítéka a helyességnek."
+      },
+      "perturbations": {
+        "term": "Módosított bemenetek ellenőrzése · perturbációk",
+        "definition": "Azt tesztelik, hogy kis, ártalmatlan módosítások után megmarad-e a válasz, és hogy egy döntő tény megváltoztatása megfelelően megváltoztatja-e a választ."
+      },
+      "reliability": {
+        "term": "A magabiztosság megbízhatósága",
+        "definition": "Ha egy modell nagyjából 80%-os magabiztosságot jelez, akkor az esetek nagyjából 80%-ában valóban helyes-e? Az ideális vonal alatt a modell túl magabiztos, felette pedig túl óvatos."
+      }
+    },
+    "caseState": {
+      "label": "Minden modellnek megadott információ",
+      "situation": "Helyzet",
+      "inputText": "Bemeneti szöveg",
+      "exactInput": "Pontos bemeneti szöveg"
+    },
+    "breakdown": {
+      "title": "Más feladat, más erősség",
+      "task": "Feladat",
+      "questions": "Kérdések",
+      "xnli": "Állítások összhangja több nyelven · XNLI"
+    },
+    "abcd": {
+      "title": "Ügyfélszolgálati beszélgetések · ABCD",
+      "task": "Feladat",
+      "tasks": {
+        "combined": "Választás cselekvés, válasz és lezárás között + helyes művelet",
+        "action": "Művelet választása, amikor jelzik, hogy művelet következik",
+        "route": "Választás cselekvés, válasz és lezárás között"
+      },
+      "compareAll": "Mind a(z) {{n}} profil összehasonlítása",
+      "referenceAgreement": "Egyezés a referenciával",
+      "coverage": "Lefedettség",
+      "exceedsLimit": "Túllépi a tesztelt 8K-s bemeneti korlátot",
+      "supported": "{{supported}} / {{planned}} támogatott",
+      "unsupportedCount": "{{n}} nem támogatott",
+      "rankingTitle": "A rangsor a döntés típusától függ",
+      "speedTitle": "A hosszú bemenetek megváltoztatták a sebesség-összehasonlítást",
+      "noWinnerTitle": "Hosszú kontextusban nincs egyértelmű győztes",
+      "scopeTitle": "Hatókör, ellenőrzés és költség"
+    }
+  },
   "abcd": {
     "intro": "Rögzített ABCD-értékelés · 300 beszélgetés, 2400 természetes bemenetváltozat és 144 különálló szintetikus kontroll. Modellenként legfeljebb 2544 mentett rekord. A böngészés nem hív modellt.",
     "errors": {
