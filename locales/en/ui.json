@@ -562,7 +562,15 @@
     "episodes": "Episodes",
     "unloading": "Unloading",
     "judging": "Judging",
-    "verifying": "Verifying"
+    "verifying": "Verifying",
+    "prediction": {
+      "ok": "ok",
+      "invalid": "invalid",
+      "timeout": "timeout",
+      "transport_error": "transport error",
+      "unsupported": "unsupported",
+      "cancelled": "cancelled"
+    }
   },
   "packs": {
     "jevbench-public": "JevBench public",

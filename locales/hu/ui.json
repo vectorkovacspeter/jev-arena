@@ -295,7 +295,7 @@
       "intro": "Hasonlítsd össze az összes modellt egy feladaton, vagy vizsgálj meg egy modellt több feladaton át.",
       "loading": "Mentett elemzés betöltése…",
       "compareAll": "Összes profil összehasonlítása ({{n}})",
-      "questionSet": "Kérdéskör",
+      "questionSet": "Kérdéskészlet",
       "scopes": {
         "shared": "Ugyanazok a támogatott kérdések minden modellnek",
         "sharedNone": "Ugyanazok a támogatott kérdések minden modellnek · ennél a típusnál nincs ilyen",
@@ -319,7 +319,7 @@
       "sortingNote": "A kiválasztott pontszám szerint rendezve; az azonos értékek ugyanazt a mért eredményt jelentik. Leíró szeletek, nem szignifikanciatesztek. A minőségi kérések időzítése a sikertelen próbálkozásokat is tartalmazza, és eltér a külön rövid bemenetes időzítési blokkoktól. A teljes futtatás megbízhatósági és munkafolyamat-diagnosztikája lent következik."
     },
     "insights": {
-      "banking77": "Ez a feladat mind a 77 szándékot megadja. A Plumb és a tesztelt SemIf interfész 16-ot fogad el. A Winnow natív szervere 64-et fogad el, de az Arena eredetileg 255-öt jelzett: mind az 500 kérést elutasította. Az alábbi korábbi 0/500 ezt a kapacitáseltérést rögzíti, és nem a banki döntések minőségét méri. Ezek az esetek egyik modellnél sem számítanak bele a közös főmutatóba.",
+      "banking77": "Ez a feladat mind a 77 szándékot megadja. A Plumb és a tesztelt SemIf interfész 16-ot fogad el. A Winnow natív szervere 64-et fogad el, de az Arena eredetileg 255-öt jelzett, ezért a szerver mind az 500 kérést elutasította. Az alábbi korábbi 0/500 ezt a kapacitáseltérést rögzíti, és nem a banki döntések minőségét méri. Ezek az esetek egyik modellnél sem számítanak bele a közös főmutatóba.",
       "agNews": "Az angol Laya 34 olyan címkét talál el, amelyet a Jev nem; a Jev 14 olyat, amelyet a Laya nem. Mindkettő eltalál 427-et; mindkettő elvét 25-öt. Ezek válaszkulcs-egyezések: nézd meg a <link>450-es eset kosárlabda / World referenciáját →</link>",
       "scifactTitle": "Mely releváns dokumentumokat találták meg?",
       "scifactIntro": "453 irreleváns dokumentum; 47 releváns. Az első opciót választó kontroll 90,6%-ot ér el, miközben a 47-ből egyet sem talál meg.",
@@ -479,7 +479,7 @@
     },
     "list": {
       "syntheticControl": "Szintetikus kontroll",
-      "conversation": "{{id}}. beszélgetés",
+      "conversation": "Beszélgetés #{{id}}",
       "meta": "{{condition}} · ellenőrzőpont: {{checkpoint}}",
       "previous": "Előző ABCD-esetek",
       "next": "Következő ABCD-esetek"
@@ -562,7 +562,15 @@
     "episodes": "Epizódok",
     "unloading": "Eltávolítás",
     "judging": "Bírálat",
-    "verifying": "Ellenőrzés"
+    "verifying": "Ellenőrzés",
+    "prediction": {
+      "ok": "rendben",
+      "invalid": "érvénytelen",
+      "timeout": "időtúllépés",
+      "transport_error": "átviteli hiba",
+      "unsupported": "nem támogatott",
+      "cancelled": "megszakítva"
+    }
   },
   "packs": {
     "jevbench-public": "JevBench nyilvános",
