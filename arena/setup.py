@@ -24,6 +24,14 @@ def prepare(ids,progress=print,models=True,datasets=True,workers=True):
         for item in REPOS.items():progress(fetch(item))
     if datasets:
         progress('Preparing and freezing evaluation datasets…');prepare_all()
+        from arena.i18n.settings import get_language
+        lang=get_language()
+        if lang!='en':
+            # English packs are already frozen; translated slots that cannot be built now are reported and skipped.
+            from arena.i18n.packs import prepare_language
+            progress(f'Preparing {lang} evaluation datasets…')
+            try:prepare_language(lang,progress)
+            except Exception as e:progress(f'{lang} datasets not fully prepared ({type(e).__name__}: {e}); English datasets are ready.')
     if workers and any(not REGISTRY[m].hosted and m!='uniform' for m in ids):
         if not shutil.which('docker'):raise RuntimeError('Docker is required. Start Docker Desktop with NVIDIA GPU support.')
         context=ROOT

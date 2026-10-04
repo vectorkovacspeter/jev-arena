@@ -19,6 +19,7 @@ from arena.registry import REGISTRY, public_registry
 from arena.scoring import summarize,paired
 from arena.store import Store
 from arena.suites import suite,inventory
+from arena.i18n import settings
 from filelock import FileLock, Timeout as LockTimeout
 from arena.episodes import run_episodes
 from arena.performance import measure
@@ -76,7 +77,7 @@ class Controller:
         control=DATA/'judge-controls'/judge.VERSION/'report.json'
         if control.exists():cli['controls']={k:v for k,v in json.loads(control.read_text(encoding="utf-8")).items() if k!='results'}
         active=next((r['id'] for r in self.store.runs() if r['status'] not in TERMINAL),None)
-        return {"hardware":hw,"models":models,"docker_ready":docker["ok"],"judge":cli,"suites":inventory(),"setup":self.store.setting("setup",{}),"active_run":active}
+        return {"hardware":hw,"models":models,"docker_ready":docker["ok"],"judge":cli,"suites":inventory(settings.get_language()),"setup":self.store.setting("setup",{}),"active_run":active}
 
     async def start(self,request:RunRequest):
         if len(set(request.model_ids))!=len(request.model_ids):raise ArenaError("duplicate_entrants","Duplicate entrants")
@@ -90,7 +91,8 @@ class Controller:
         try:probe.acquire(timeout=0)
         except LockTimeout:raise ArenaError('gpu_busy_process','Another Arena process owns the GPU. Wait for its run to finish.')
         else:probe.release()
-        cases=suite(request.preset)
+        lang=settings.get_language()
+        cases=suite(request.preset,lang)
         ready=await self.readiness();lookup={m["id"]:m for m in ready["models"]}
         missing=[lookup[m] for m in request.model_ids if not lookup[m]["ready"]]
         if missing:raise setup_needed_error(missing)
@@ -99,6 +101,7 @@ class Controller:
         records=[c.model_dump() for c in cases]
         order=list(request.model_ids);random.Random(request.seed).shuffle(order)
         manifest={"version":"arena-v1","created":time.time(),"request":request.model_dump(),"case_count":len(cases),"case_sha256":digest(records),"hardware":ready["hardware"],"entrants":[lookup[m] for m in request.model_ids],"order":order,"judge":{"requested_model":judge.MODEL,"transport":"Codex CLI / ChatGPT login","rubric":judge.VERSION},"artifact_kind":"measured","fresh_labels":"formal executable-policy fixtures; no human semantic audit claimed","protocol_sha256":digest((ROOT/"EVALUATION.md").read_bytes()),"source_sha256":digest({p.relative_to(ROOT).as_posix():digest(p.read_bytes()) for p in sorted((ROOT/"arena").glob("*.py"))})}
+        manifest['language']=lang
         manifest['implemented_profile_sha256']=digest((ROOT/'docs'/'IMPLEMENTATION.md').read_bytes())
         manifest['version']='arena-v2'
         manifest['fixture_version']='formal-v2'

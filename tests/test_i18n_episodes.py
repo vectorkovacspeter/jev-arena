@@ -104,7 +104,7 @@ def test_run_episodes_rows_carry_language():
 def arena(tmp_path, monkeypatch):
     runs = tmp_path / "runs"; runs.mkdir()
     monkeypatch.setattr(module, "RUNS", runs); monkeypatch.setattr(module, "DATA", tmp_path)
-    monkeypatch.setattr(module, "suite", lambda preset: smoke()[:8])
+    monkeypatch.setattr(module, "suite", lambda preset, lang="en": smoke()[:8])
     ctl = module.Controller(Store(tmp_path / "store.db"))
     async def readiness(): return {"models": [{"id": "uniform", "name": "Uniform baseline", "ready": True}], "hardware": {}, "judge": {"ready": True}}
     ctl.readiness = readiness
