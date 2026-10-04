@@ -9,13 +9,20 @@ import {
   Check,
   TriangleAlert,
 } from "lucide-react";
+import type { TFunction } from "i18next";
+import { Trans } from "react-i18next";
 import type { Result, Episode } from "./types";
+import { useTranslation, useFormat } from "./i18n";
+import { slug } from "./labels";
 import referenceCautions from "../../../docs/reference-cautions.json";
 
-const time = (n: number) =>
-  n >= 1000 ? `${(n / 1000).toFixed(2)}s` : `${n.toFixed(0)}ms`;
-const pct = (n: number | null | undefined) =>
-  n == null ? "N/A" : `${(100 * n).toFixed(1)}%`;
+// Episode answers and topics are data values compared in code; only their display text is translated.
+const directionLabel = (t: TFunction, d: string) =>
+  t(`operations.directions.${d}`, { defaultValue: d });
+const queueLabel = (t: TFunction, q: string) =>
+  t(`operations.queues.${slug(q)}`, { defaultValue: q });
+const topicLabel = (t: TFunction, topic: string) =>
+  t(`operations.topics.${slug(topic)}`, { defaultValue: topic });
 
 export function Operations({
   result,
@@ -30,18 +37,24 @@ export function Operations({
   const caution = referenceCautions.applicability.find(
     (profile) => profile.case_sha256 === result.manifest?.case_sha256,
   );
+  const { t } = useTranslation();
+  const fmt = useFormat();
+  const na = t("common.notApplicable");
+  const pct = (n: number | null | undefined) =>
+    n == null ? na : fmt.percent(n, 1);
+  const fixedOrNa = (n: number | null | undefined, d: number) =>
+    n == null ? na : fmt.fixed(n, d);
   return (
     <>
       <section className="analysis-panel operation-panel">
         <div className="section-title">
           <div>
-            <h2>Performance, measured separately.</h2>
-            <p>
-              Three serial blocks over the first 200 frozen JevBench public
-              cases; loading and warmup excluded.
-            </p>
+            <h2>{t("operations.performanceTitle")}</h2>
+            <p>{t("operations.performanceIntro")}</p>
           </div>
-          <span className="tag">{perf ? "MEASURED" : "FULL SUITE ONLY"}</span>
+          <span className="tag">
+            {perf ? t("operations.measured") : t("operations.fullSuiteOnly")}
+          </span>
         </div>
         {perf ? (
           <>
@@ -49,17 +62,29 @@ export function Operations({
               {perf.blocks.map((b) => (
                 <div key={b.block}>
                   <span>
-                    BLOCK {b.block + 1} · CONCURRENCY {b.concurrency}
+                    {t("operations.block", {
+                      n: b.block + 1,
+                      concurrency: b.concurrency,
+                    })}
                   </span>
                   <strong>
-                    {b.requests_per_second.toFixed(1)}
-                    <small> decisions / sec</small>
+                    {fmt.fixed(b.requests_per_second, 1)}
+                    <small> {t("operations.decisionsPerSecond")}</small>
                   </strong>
                   <div>
-                    <span>Typical {time(b.p50_ms)}</span>
-                    <span>95% within {time(b.p95_ms)}</span>
                     <span>
-                      {b.valid}/{b.requests} valid
+                      {t("operations.typical", { time: fmt.duration(b.p50_ms) })}
+                    </span>
+                    <span>
+                      {t("operations.p95Within", {
+                        time: fmt.duration(b.p95_ms),
+                      })}
+                    </span>
+                    <span>
+                      {t("operations.validRequests", {
+                        valid: fmt.number(b.valid),
+                        total: fmt.number(b.requests),
+                      })}
                     </span>
                   </div>
                 </div>
@@ -68,33 +93,27 @@ export function Operations({
             <div className="fanout">
               {perf.fanout.map((f) => (
                 <span key={f.questions}>
-                  <b>{f.questions}</b> repeated questions / same state{" "}
+                  <Trans
+                    i18nKey="operations.fanout"
+                    values={{ n: fmt.number(f.questions) }}
+                    components={{ b: <b /> }}
+                  />{" "}
                   <ArrowRight size={13} />
-                  <strong>{time(f.elapsed_ms)}</strong>
+                  <strong>{fmt.duration(f.elapsed_ms)}</strong>
                 </span>
               ))}
             </div>
-            <p className="small muted">
-              Serial dispatch profile. Concurrency 4/16 and native batch
-              acceleration are not measured.
-            </p>
+            <p className="small muted">{t("operations.serialProfileNote")}</p>
           </>
         ) : (
-          <p className="muted small">
-            Run the Full suite to collect three 200-request timing blocks,
-            same-state fanout and three load/unload cycles.
-          </p>
+          <p className="muted small">{t("operations.fullSuiteHint")}</p>
         )}
       </section>
       <section className="analysis-panel operation-panel">
         <div className="section-title">
           <div>
-            <h2>Paired comparisons</h2>
-            <p>
-              Difference in strict correctness on each pair’s supported reference cases.
-              Denominators can differ from the all-entrant shared label table.
-              Descriptive 95% intervals; positive favors this entrant.
-            </p>
+            <h2>{t("operations.pairedTitle")}</h2>
+            <p>{t("operations.pairedIntro")}</p>
           </div>
         </div>
         {result.comparisons.filter((c) => c.model === model).length ? (
@@ -104,20 +123,25 @@ export function Operations({
               .map((c) => (
                 <div key={c.reference}>
                   <span>
-                    Versus{" "}
-                    {result.entrants.find((e) => e.id === c.reference)?.name ||
-                      c.reference}{" "}
-                    · {c.n.toLocaleString()} paired cases
+                    {t("operations.versus", {
+                      name:
+                        result.entrants.find((e) => e.id === c.reference)
+                          ?.name || c.reference,
+                      count: c.n,
+                      n: fmt.number(c.n),
+                    })}
                   </span>
                   <strong>
                     {c.delta == null
-                      ? "N/A"
-                      : `${c.delta >= 0 ? "+" : ""}${(c.delta * 100).toFixed(1)} pp`}
+                      ? na
+                      : `${fmt.points(c.delta)} ${t("common.pp")}`}
                     {c.ci && (
                       <small>
                         {" "}
-                        ({(c.ci[0] * 100).toFixed(1)} to{" "}
-                        {(c.ci[1] * 100).toFixed(1)})
+                        {t("operations.ciRange", {
+                          low: fmt.fixed(c.ci[0] * 100, 1),
+                          high: fmt.fixed(c.ci[1] * 100, 1),
+                        })}
                       </small>
                     )}
                   </strong>
@@ -125,46 +149,41 @@ export function Operations({
               ))}
           </div>
         ) : (
-          <p className="muted small">
-            Select another entrant in a completed run containing Jev or Qwen to
-            inspect a paired comparison.
-          </p>
+          <p className="muted small">{t("operations.pairedEmpty")}</p>
         )}
       </section>
       <div className="results-grid">
         <section className="analysis-panel">
-          <h2>Reference agreement & retrieval</h2>
+          <h2>{t("operations.referenceTitle")}</h2>
           <div className="ledger">
             <div>
-              <span>Agreement with AI-teacher answers (separate)</span>
+              <span>{t("operations.teacherAgreement")}</span>
               <strong>{pct(m?.teacher_agreement)}</strong>
             </div>
             <div>
-              <span>Difference from AI-teacher probabilities</span>
-              <strong>{m?.teacher_brier?.toFixed(4) ?? "N/A"}</strong>
+              <span>{t("operations.teacherProbabilityDifference")}</span>
+              <strong>{fixedOrNa(m?.teacher_brier, 4)}</strong>
             </div>
             <div>
-              <span>Pack macro accuracy</span>
+              <span>{t("operations.packMacroAccuracy")}</span>
               <strong>{pct(m?.pack_macro_accuracy)}</strong>
             </div>
             <div>
-              <span>SciFact nDCG@10 / fixed pool</span>
-              <strong>
-                {m?.diagnostics?.rag.ndcg_at_10?.toFixed(3) ?? "N/A"}
-              </strong>
+              <span>{t("operations.scifactNdcg")}</span>
+              <strong>{fixedOrNa(m?.diagnostics?.rag.ndcg_at_10, 3)}</strong>
             </div>
             <div>
-              <span>SciFact MRR / fixed pool</span>
-              <strong>{m?.diagnostics?.rag.mrr?.toFixed(3) ?? "N/A"}</strong>
+              <span>{t("operations.scifactMrr")}</span>
+              <strong>{fixedOrNa(m?.diagnostics?.rag.mrr, 3)}</strong>
             </div>
             <div>
-              <span>Complete query pools</span>
-              <strong>{m?.diagnostics?.rag.queries || 0}</strong>
+              <span>{t("operations.completeQueryPools")}</span>
+              <strong>{fmt.number(m?.diagnostics?.rag.queries || 0)}</strong>
             </div>
           </div>
         </section>
         <section className="analysis-panel">
-          <h2>Workflow outcomes</h2>
+          <h2>{t("operations.workflowTitle")}</h2>
           {episodes.length ? (
             ["untimed_quality", "deadline_500ms"]
               .filter((mode) => episodes.some((e) => e.mode === mode))
@@ -180,70 +199,84 @@ export function Operations({
                   <div className="episode-score" key={mode}>
                     <span>
                       {mode === "untimed_quality"
-                        ? "Untimed quality"
-                        : "500ms decision deadline"}
+                        ? t("operations.modes.untimedQuality")
+                        : t("operations.modes.decisionDeadline")}
                     </span>
                     <strong>
-                      {rows.filter((e) => e.success).length}
-                      <small> / {rows.length} successful episodes</small>
+                      {fmt.number(rows.filter((e) => e.success).length)}
+                      <small>
+                        {" "}
+                        {t("operations.successfulEpisodes", {
+                          total: fmt.number(rows.length),
+                        })}
+                      </small>
                     </strong>
                     <p>
-                      Warehouse:{" "}
-                      {warehouseEpisodes.filter((e) => e.success).length}/
-                      {warehouseEpisodes.length}
-                      {" · "}Tickets:{" "}
-                      {ticketEpisodes.filter((e) => e.success).length}/
-                      {ticketEpisodes.length}
+                      {t("operations.successByTask", {
+                        warehouse: fmt.number(
+                          warehouseEpisodes.filter((e) => e.success).length,
+                        ),
+                        warehouseTotal: fmt.number(warehouseEpisodes.length),
+                        tickets: fmt.number(
+                          ticketEpisodes.filter((e) => e.success).length,
+                        ),
+                        ticketsTotal: fmt.number(ticketEpisodes.length),
+                      })}
                     </p>
                     <p>
-                      Ticket decisions:{" "}
-                      {tickets.filter((step) => step.correct).length}/
-                      {tickets.length} correct. Unrestricted tickets sent to
-                      Review:{" "}
-                      {
-                        unrestricted.filter((step) => step.answer === "Review")
-                          .length
-                      }
-                      /{unrestricted.length}.
+                      {t("operations.ticketDecisions", {
+                        correct: fmt.number(
+                          tickets.filter((step) => step.correct).length,
+                        ),
+                        total: fmt.number(tickets.length),
+                        review: fmt.number(
+                          unrestricted.filter(
+                            (step) => step.answer === "Review",
+                          ).length,
+                        ),
+                        unrestricted: fmt.number(unrestricted.length),
+                      })}
                     </p>
                     <p>
-                      {rows.reduce((s, e) => s + e.violations, 0)} constraint
-                      violations ·{" "}
-                      {rows.reduce((s, e) => s + (e.deadline_misses || 0), 0)}{" "}
-                      deadline misses
+                      {t("operations.violationsAndMisses", {
+                        violations: fmt.number(
+                          rows.reduce((s, e) => s + e.violations, 0),
+                        ),
+                        misses: fmt.number(
+                          rows.reduce(
+                            (s, e) => s + (e.deadline_misses || 0),
+                            0,
+                          ),
+                        ),
+                      })}
                     </p>
                   </div>
                 );
               })
           ) : (
             <p className="small muted spaced">
-              Demo and Full runs include recorded warehouse and ticket-routing
-              episodes.
+              {t("operations.noEpisodes")}
             </p>
           )}
-          <p className="small muted">
-            Ticket success requires all 12 decisions correct. Repeated blocked
-            moves count at each step; they are not independent failures.
-          </p>
+          <p className="small muted">{t("operations.ticketSuccessNote")}</p>
         </section>
       </div>
       {m?.diagnostics && (
         <div className="results-grid">
           <section className="analysis-panel">
-            <h2>Confidence / coverage</h2>
+            <h2>{t("operations.coverageTitle")}</h2>
             <p className="small muted spaced">
-              Coverage is retained valid reference answers divided by all
-              {" "}{result.case_count.toLocaleString()} planned records; teacher
-              records are in the denominator but are not eligible. These are
-              descriptive test thresholds, not calibrated deployment settings.
+              {t("operations.coverageNote", {
+                n: fmt.number(result.case_count),
+              })}
             </p>
             <div className="table-scroll">
               <table>
                 <thead>
                   <tr>
-                    <th>MIN CONFIDENCE</th>
-                    <th>COVERAGE</th>
-                    <th>ERROR</th>
+                    <th>{t("operations.minConfidence")}</th>
+                    <th>{t("operations.coverage")}</th>
+                    <th>{t("operations.error")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -259,19 +292,27 @@ export function Operations({
             </div>
           </section>
           <section className="analysis-panel">
-            <h2>What happens when the input changes?</h2>
+            <h2>{t("operations.robustnessTitle")}</h2>
             <p className="small muted spaced">
-              Each changed input is compared with its original. Harmless edits should preserve the answer; changing a decisive fact should change it.
+              {t("operations.robustnessIntro")}
             </p>
             <div className="ledger">
               {Object.entries(m.diagnostics.robustness).map(([name, r]) => (
                 <div key={name}>
                   <span>
-                    {name} · {r.pairs} pairs
+                    {t("operations.robustnessPairs", {
+                      name,
+                      pairs: fmt.number(r.pairs),
+                    })}
                   </span>
                   <strong>
-                    {(r.accuracy_delta * 100).toFixed(1)} pp
-                    <small> · {pct(r.answer_flip_rate)} answer flips</small>
+                    {`${fmt.points(r.accuracy_delta)} ${t("common.pp")}`}
+                    <small>
+                      {" "}
+                      {t("operations.answerFlips", {
+                        rate: pct(r.answer_flip_rate),
+                      })}
+                    </small>
                   </strong>
                 </div>
               ))}
@@ -282,16 +323,14 @@ export function Operations({
       {caution && (
         <section className="analysis-panel operation-panel">
           <div className="section-title">
-            <h2>Reference wording under review</h2>
+            <h2>{t("operations.cautionTitle")}</h2>
             <TriangleAlert size={18} />
           </div>
           <p className="small muted">
-            {caution.affected_cases} cases in this frozen suite combine a
-            payment or onboarding topic with the service marked unavailable. The reference
-            routes by topic; Engineering is a plausible alternate reading. This
-            was found after the Demo. Original scores stay unchanged; exclusions
-            belong only in a separately labeled sensitivity analysis. Judge
-            agreement does not settle that ambiguity.
+            {t("operations.cautionBody", {
+              count: caution.affected_cases,
+              n: fmt.number(caution.affected_cases),
+            })}
           </p>
         </section>
       )}
@@ -300,6 +339,8 @@ export function Operations({
 }
 
 export function EpisodeReplay({ result }: { result: Result }) {
+  const { t } = useTranslation();
+  const fmt = useFormat();
   const episodes = result.episodes || [];
   const [task, setTask] = useState("warehouse"),
     [seed, setSeed] = useState(5090),
@@ -358,9 +399,9 @@ export function EpisodeReplay({ result }: { result: Result }) {
           return {
             ...e,
             episode: e.episode!,
-            points: e.episode!.trace.map((t) => ({
-              time: (elapsed += t.request_ms),
-              step: t,
+            points: e.episode!.trace.map((step) => ({
+              time: (elapsed += step.request_ms),
+              step,
             })),
             duration: e.episode!.wall_request_ms,
           };
@@ -376,8 +417,8 @@ export function EpisodeReplay({ result }: { result: Result }) {
     if (!playing) return;
     const timer = setInterval(
       () =>
-        setClock((t) => {
-          const n = Math.min(duration, t + 50 * speed);
+        setClock((c) => {
+          const n = Math.min(duration, c + 50 * speed);
           if (n === duration) setPlaying(false);
           return n;
         }),
@@ -389,48 +430,53 @@ export function EpisodeReplay({ result }: { result: Result }) {
     return (
       <div className="empty-state">
         <Box size={36} />
-        <h2>The same world. Different decisions.</h2>
-        <p>
-          Run Demo or Full to record warehouse navigation and ticket routing.
-          Every seed stays available for replay.
-        </p>
+        <h2>{t("operations.replay.emptyTitle")}</h2>
+        <p>{t("operations.replay.emptyDetail")}</p>
       </div>
     );
   return (
     <>
-      <section className="replay-intro"><h2>Two workflow demos, many saved scenarios</h2><p>These tabs are task types: moving through a warehouse and routing support tickets. Full v2 recorded 20 scenarios per task, per model, both untimed and with a 500 ms deadline — 1,040 episodes in total. They are separate from the 7,671 static benchmark questions in Case explorer.</p><p className="small muted">Playback uses saved decisions. It does not rerun models, spend credits or change results. These simple environments show how decisions combine across steps; they do not prove deployment success.</p></section>
+      <section className="replay-intro">
+        <h2>{t("operations.replay.introTitle")}</h2>
+        <p>{t("operations.replay.introBody")}</p>
+        <p className="small muted">{t("operations.replay.introNote")}</p>
+      </section>
       <div className="episode-controls">
         <div className="workspace-tabs">
-          {["warehouse", "tickets"].map((t) => (
+          {["warehouse", "tickets"].map((k) => (
             <button
-              key={t}
-              className={task === t ? "selected" : ""}
-              onClick={() => setTask(t)}
+              key={k}
+              className={task === k ? "selected" : ""}
+              onClick={() => setTask(k)}
             >
-              {t === "warehouse" ? "Warehouse dispatch" : "Ticket routing"}
+              {k === "warehouse"
+                ? t("operations.replay.warehouseTask")
+                : t("operations.replay.ticketTask")}
             </button>
           ))}
         </div>
         <div>
           <select
-            aria-label="Episode seed"
+            aria-label={t("operations.replay.seedLabel")}
             value={seed}
             onChange={(e) => setSeed(+e.target.value)}
           >
             {[...new Set(episodes.map((e) => e.seed))].sort().map((s) => (
               <option key={s} value={s}>
-                Seed {s}
+                {t("operations.replay.seed", { seed: s })}
               </option>
             ))}
           </select>
           <select
-            aria-label="Episode mode"
+            aria-label={t("operations.replay.modeLabel")}
             value={mode}
             onChange={(e) => setMode(e.target.value)}
           >
             {[...new Set(episodes.map((e) => e.mode))].map((m) => (
               <option key={m} value={m}>
-                {m === "untimed_quality" ? "Untimed quality" : "500ms deadline"}
+                {m === "untimed_quality"
+                  ? t("operations.modes.untimedQuality")
+                  : t("operations.modes.deadline")}
               </option>
             ))}
           </select>
@@ -454,15 +500,19 @@ export function EpisodeReplay({ result }: { result: Result }) {
             {chosen.includes(e.id) && <Check size={12} />} {e.name}
           </button>
         ))}
-        <span>Choose up to four lanes</span>
+        <span>{t("operations.replay.chooseLanes")}</span>
       </div>
       <div className="replay-controls">
-        <span className="tag measured">RECORDED WORKFLOWS</span>
-        <span>Sequential inference · aligned at zero · {speed}× playback</span>
+        <span className="tag measured">{t("operations.replay.tag")}</span>
+        <span>
+          {t("operations.replay.playbackInfo", {
+            speed: fmt.number(speed, 2),
+          })}
+        </span>
         <div>
           <button
             className="icon-btn"
-            aria-label="Restart episode replay"
+            aria-label={t("operations.replay.restart")}
             onClick={() => {
               setClock(0);
               setPlaying(false);
@@ -478,29 +528,33 @@ export function EpisodeReplay({ result }: { result: Result }) {
             }}
           >
             {playing ? <Pause size={16} /> : <Play size={16} />}{" "}
-            {playing ? "Pause" : "Play"}
+            {playing ? t("replay.pause") : t("replay.play")}
           </button>
           <select
-            aria-label="Episode playback speed"
+            aria-label={t("operations.replay.speed")}
             value={speed}
             onChange={(e) => setSpeed(+e.target.value)}
           >
             {[0.1, 0.25, 0.5, 1, 2, 5, 10].map((n) => (
-              <option key={n}>{n}</option>
+              <option key={n} value={n}>
+                {fmt.number(n, 2)}
+              </option>
             ))}
           </select>
         </div>
       </div>
       <div className="replay-timer">
         <strong>
-          {(clock / 1000).toFixed(2)}
-          <small>s</small>
+          {fmt.fixed(clock / 1000, 2)}
+          <small>{"s"}</small>
         </strong>
-        <span>{time(duration)} recorded · real request durations</span>
+        <span>
+          {t("operations.replay.recorded", { time: fmt.duration(duration) })}
+        </span>
       </div>
       <input
         className="timeline-slider"
-        aria-label="Episode playback position"
+        aria-label={t("operations.replay.position")}
         type="range"
         min={0}
         max={duration}
@@ -520,14 +574,19 @@ export function EpisodeReplay({ result }: { result: Result }) {
           return (
             <section key={l.episode.model_id}>
               <div className="world-title">
-                <span>LANE {String(i + 1).padStart(2, "0")}</span>
+                <span>
+                  {t("replay.lane", { n: String(i + 1).padStart(2, "0") })}
+                </span>
                 <h2>{l.name}</h2>
                 <span className="tag">
                   {finished
                     ? l.episode.success
-                      ? "SUCCESS"
-                      : "INCOMPLETE"
-                    : `STEP ${done.length} / ${l.points.length}`}
+                      ? t("operations.replay.success")
+                      : t("operations.replay.incomplete")
+                    : t("operations.replay.step", {
+                        done: fmt.number(done.length),
+                        total: fmt.number(l.points.length),
+                      })}
                 </span>
               </div>
               {task === "warehouse" ? (
@@ -542,46 +601,58 @@ export function EpisodeReplay({ result }: { result: Result }) {
                 />
               )}
               <div className="world-decision">
-                <span>LATEST DECISION</span>
+                <span>{t("replay.latestDecision")}</span>
                 <strong>
-                  {last?.answer || "—"}
+                  {last?.answer
+                    ? task === "warehouse"
+                      ? directionLabel(t, last.answer)
+                      : queueLabel(t, last.answer)
+                    : "—"}
                   {last?.deadline_missed && <TriangleAlert size={16} />}
                 </strong>
                 <small>
                   {last
-                    ? `${time(last.request_ms)}${last.deadline_missed ? " · deadline missed" : ""}`
-                    : "Waiting for first request"}
+                    ? last.deadline_missed
+                      ? t("operations.replay.deadlineMissed", {
+                          time: fmt.duration(last.request_ms),
+                        })
+                      : fmt.duration(last.request_ms)
+                    : t("operations.replay.waitingFirst")}
                 </small>
               </div>
               <div className="world-metrics">
                 <span>
-                  <b>{done.length}</b> steps
+                  <Trans
+                    i18nKey="operations.replay.steps"
+                    values={{ n: fmt.number(done.length) }}
+                    components={{ b: <b /> }}
+                  />
                 </span>
                 <span>
-                  <b>
-                    {
-                      done.filter(
-                        (d) =>
-                          d.step.valid === false || d.step.correct === false,
-                      ).length
-                    }
-                  </b>{" "}
-                  failed actions
+                  <Trans
+                    i18nKey="operations.replay.failedActions"
+                    values={{
+                      n: fmt.number(
+                        done.filter(
+                          (d) =>
+                            d.step.valid === false ||
+                            d.step.correct === false,
+                        ).length,
+                      ),
+                    }}
+                    components={{ b: <b /> }}
+                  />
                 </span>
                 <span>
                   <Timer size={13} />{" "}
-                  {finished ? time(l.duration) : time(clock)}
+                  {fmt.duration(finished ? l.duration : clock)}
                 </span>
               </div>
             </section>
           );
         })}
       </div>
-      <p className="muted small spaced">
-        In deadline mode, a late answer consumes a step and causes no action.
-        The environment pauses for each decision in untimed mode. These are
-        deterministic simulations, not external actions.
-      </p>
+      <p className="muted small spaced">{t("operations.replay.deadlineNote")}</p>
     </>
   );
 }
@@ -593,15 +664,19 @@ function WarehouseGrid({
   episode: Episode;
   steps: Episode["trace"];
 }) {
+  const { t } = useTranslation();
   const position = steps.at(-1)?.after || [0, 0],
     goal = episode.goal || [5, 5],
-    path = [[0, 0], ...steps.map((t) => t.after || [0, 0])];
+    path = [[0, 0], ...steps.map((s) => s.after || [0, 0])];
   return (
     <svg
       viewBox="0 0 300 300"
       className="warehouse-grid"
       role="img"
-      aria-label={`Warehouse robot at ${position.join(",")}, goal ${goal.join(",")}`}
+      aria-label={t("operations.replay.robotPosition", {
+        position: position.join(","),
+        goal: goal.join(","),
+      })}
     >
       <defs>
         <pattern
@@ -653,7 +728,7 @@ function WarehouseGrid({
         fill="var(--accent)"
         fontSize="10"
       >
-        GOAL
+        {t("operations.replay.goal")}
       </text>
       <polyline
         points={path
@@ -688,18 +763,27 @@ function TicketBoard({
   episode: Episode;
   steps: Episode["trace"];
 }) {
+  const { t } = useTranslation();
+  const fmt = useFormat();
   const active = steps.at(-1);
   return (
     <div className="ticket-world">
       <div className="ticket-feed">
         <span>
-          INCOMING / {steps.length} OF {episode.steps}
+          {t("operations.replay.incoming", {
+            done: fmt.number(steps.length),
+            total: fmt.number(episode.steps),
+          })}
         </span>
-        <strong>{active?.topic || "Awaiting first ticket"}</strong>
+        <strong>
+          {active?.topic
+            ? topicLabel(t, active.topic)
+            : t("operations.replay.awaitingTicket")}
+        </strong>
         <small>
           {active?.restricted
-            ? "Restricted account · review required"
-            : "Route using the supplied policy"}
+            ? t("operations.replay.restricted")
+            : t("operations.replay.routeByPolicy")}
         </small>
       </div>
       <ArrowRight className="ticket-arrow" size={20} />
@@ -709,7 +793,7 @@ function TicketBoard({
             key={queue}
             className={active?.answer === queue ? "selected" : ""}
           >
-            <span>{queue}</span>
+            <span>{queueLabel(t, queue)}</span>
             <strong>{steps.filter((s) => s.answer === queue).length}</strong>
             <div className="queue-dots">
               {steps
