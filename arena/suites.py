@@ -38,7 +38,7 @@ def suite(preset):
         cases=jevbench()+imported()+fresh()+robustness()
         counts=Counter(c.pack for c in cases)
         missing={k:{"expected":v,"available":counts.get(k,0)} for k,v in EXPECTED.items() if counts.get(k,0)!=v}
-        if missing: raise ArenaError("suite_not_prepared","Full suite is not prepared: "+json.dumps(missing),missing=json.dumps(missing))
+        if missing: raise ArenaError("suite_not_prepared","Full suite is not prepared: "+json.dumps(missing),missing=json.dumps(missing),packs=missing)
     if len({c.id for c in cases})!=len(cases): raise ArenaError("duplicate_case_ids","Duplicate case IDs in suite")
     return cases
 

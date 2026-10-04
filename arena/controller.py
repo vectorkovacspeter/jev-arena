@@ -25,6 +25,13 @@ from arena.performance import measure
 from arena.audit import stratified_ids, disagreement_ids
 
 REASONS={"add_typesafe_key":"Add your TypeSafe key","native_pending":"Native integration pending","prepare_weights":"Prepare model weights","gpu_unavailable":"GPU worker unavailable"}
+def reason_code_for(e,info,ready):
+    return None if ready else "add_typesafe_key" if e["hosted"] else "native_pending" if e["runtime"] not in IMPLEMENTED else "prepare_weights" if not info else "gpu_unavailable"
+
+def setup_needed_error(models):
+    missing=[m["name"]+": "+m["reason"] for m in models]
+    return ArenaError("setup_needed","Setup needed: "+"; ".join(missing),details="; ".join(missing),models=[{"name":m["name"],"reason_code":m["reason_code"]} for m in models])
+
 TERMINAL={"complete","cancelled","failed","judging_incomplete","partial","interrupted"}
 
 def implementation_hash():
@@ -60,7 +67,7 @@ class Controller:
         for e in public_registry():
             info=model_info(e["id"])
             ready=e["id"]=="uniform" or (e["hosted"] and bool(os.environ.get("TYPESAFE_API_KEY"))) or (e["runtime"] in IMPLEMENTED and bool(info and info.get("complete")) and images.get(IMAGES.get(e["runtime"],IMAGE),False) and bool(hw["gpu"]))
-            reason_code=None if ready else "add_typesafe_key" if e["hosted"] else "native_pending" if e["runtime"] not in IMPLEMENTED else "prepare_weights" if not info else "gpu_unavailable"
+            reason_code=reason_code_for(e,info,ready)
             reason=REASONS.get(reason_code)
             models.append({**e,"ready":ready,"reason":reason,"reason_code":reason_code,"prepared":bool(info),"resolved_revision":info.get("resolved_revision") if info else None})
         proof=DATA/"judge-smoke"/"metadata.json"
@@ -85,8 +92,8 @@ class Controller:
         else:probe.release()
         cases=suite(request.preset)
         ready=await self.readiness();lookup={m["id"]:m for m in ready["models"]}
-        missing=[lookup[m]["name"]+": "+lookup[m]["reason"] for m in request.model_ids if not lookup[m]["ready"]]
-        if missing:raise ArenaError("setup_needed","Setup needed: "+"; ".join(missing),details="; ".join(missing))
+        missing=[lookup[m] for m in request.model_ids if not lookup[m]["ready"]]
+        if missing:raise setup_needed_error(missing)
         if request.judge and not ready["judge"]["ready"]:raise ArenaError("judge_not_ready",ready["judge"]["reason"],reason=ready["judge"]["reason"])
         rid=time.strftime("%Y%m%d-%H%M%S")+"-"+uuid.uuid4().hex[:6]
         records=[c.model_dump() for c in cases]
