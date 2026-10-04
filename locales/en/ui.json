@@ -8,7 +8,12 @@
       "smoke": "Smoke",
       "demo": "Demo",
       "full": "Full"
-    }
+    },
+    "unavailable": "Unavailable",
+    "unknown": "Unknown",
+    "yes": "Yes",
+    "no": "No",
+    "pageRange": "{{from}}–{{to}} / {{total}}"
   },
   "shell": {
     "skipToContent": "Skip to content",
@@ -262,6 +267,129 @@
       "teacherAgreement": "Public teacher agreement is distinct from verified correctness. No overall winner is declared from a partial cohort."
     }
   },
+  "explore": {
+    "allQuestionTypes": "All question types",
+    "jumpToType": "Jump to question type",
+    "questionType": "Question type",
+    "model": "Model",
+    "failedOutput": "Failed output or request",
+    "unsupported": "Unsupported",
+    "matchingQuestions_one": "{{n}} matching question",
+    "matchingQuestions_other": "{{n}} matching questions",
+    "types": {
+      "ag-news": "News topics · AG News",
+      "sst-2": "Sentiment · SST-2",
+      "banking77": "Banking intents · 77 choices",
+      "xnli": "Multilingual entailment · XNLI",
+      "massive": "Multilingual intent · MASSIVE",
+      "scifact": "Document relevance · SciFact",
+      "arena-fresh": "Explicit policy rules",
+      "robustness": "Changed-input checks"
+    },
+    "errors": {
+      "requestFailed": "Request failed ({{status}})",
+      "reportAnalysis": "Open the local Arena app to explore question types for this saved report."
+    },
+    "analysis": {
+      "title": "Results by question type",
+      "intro": "Compare every model on one job, or inspect one model across jobs.",
+      "loading": "Loading saved analysis…",
+      "compareAll": "Compare all {{n}} profiles",
+      "questionSet": "Question set",
+      "scopes": {
+        "shared": "Same supported questions for all models",
+        "sharedNone": "Same supported questions for all models · none for this type",
+        "supported": "Each model's attempted questions",
+        "teacher": "AI-teacher agreement only"
+      },
+      "score": "Score",
+      "metrics": {
+        "label": "Selected answer",
+        "strict": "Correct + usable output"
+      },
+      "highestScore": "{{name}} · highest displayed score",
+      "teacherScope": "{{n}} AI-teacher questions. Agreement with AI answers, not independent accuracy.",
+      "sharedScope": "{{shared}} identical answer-key questions per model. {{excluded}} excluded for common support/completion.",
+      "supportedScope": "{{n}} planned answer-key questions. Supported denominators can differ; capacity failures in the historical record remain failures.",
+      "teacherExcluded": "{{n}} AI-teacher cases excluded.",
+      "openQuestions": "Open these questions →",
+      "noSharedQuestions": "No questions of this type were supported by every model. Showing each model’s attempted questions automatically, with unsupported and missing counts alongside.",
+      "teacherFootnote": "Matches + non-matches equals the scored count. Unsupported means the input exceeded a tested model or interface limit; it does not mean a wrong answer. Missing means no saved prediction. Coverage counts the entire selected question type, even when the score uses only shared questions. Failed outputs or requests are a separate diagnostic on the scored questions; a selected answer can match the key while its output fails validation.",
+      "scoredFootnote": "Correct + not correct equals the scored count. Unsupported means the input exceeded a tested model or interface limit; it does not mean a wrong answer. Missing means no saved prediction. Coverage counts the entire selected question type, excluding AI-teacher cases, even when the score uses only shared questions. Failed outputs or requests are a separate diagnostic on the scored questions; a selected answer can match the key while its output fails validation.",
+      "sortingNote": "Sorted by the selected score; ties share the same measured result. Descriptive slices, not significance tests. Quality-request timing includes failed attempts and differs from the dedicated short-input timing blocks. Whole-run confidence and workflow diagnostics follow below."
+    },
+    "insights": {
+      "banking77": "This task supplies all 77 intents. Plumb and the tested SemIf interface accept 16. Winnow’s native server accepts 64, but Arena initially declared 255: all 500 requests were rejected. Its historical 0/500 below records that capacity mismatch and does not measure banking decision quality. These cases are outside the shared headline for every model.",
+      "agNews": "English Laya matches 34 labels that Jev misses; Jev matches 14 that Laya misses. Both match 427; both miss 25. These are answer-key matches: inspect case <link>450’s basketball / World reference →</link>",
+      "scifactTitle": "Which relevant documents were found?",
+      "scifactIntro": "453 irrelevant documents; 47 relevant. The first-option control scores 90.6% while finding none of the 47.",
+      "relevantFound": "Relevant found / 47",
+      "irrelevantPassed": "Irrelevant passed through",
+      "yesPrecision": "Precision of “yes”",
+      "scifactNote": "Selected-label diagnostics, independent of the output-validity selector below. Precision is undefined when a model never selects “yes.”"
+    },
+    "table": {
+      "accuracy": "Accuracy",
+      "agreement": "Agreement",
+      "correctScored": "Correct / scored",
+      "matchesScored": "Matches / scored",
+      "nonMatches": "Non-matches",
+      "notCorrect": "Not correct",
+      "coverage": "Coverage · entire question type",
+      "qualityLatency": "Quality P50 / P95",
+      "evidence": "Evidence",
+      "notRun": "Not run",
+      "noScored": "No scored questions",
+      "invalidIncluded": "{{n}} invalid outputs included",
+      "attempted": "{{n}} / {{planned}} attempted",
+      "coverageGaps": "{{unsupported}} unsupported · {{missing}} missing",
+      "inspect": "Inspect →"
+    },
+    "cases": {
+      "reportOnly": "Exact case text stays in the local Arena workspace. This report contains aggregate evidence only.",
+      "chooseRun": "Choose a saved run to inspect its questions.",
+      "allOfType": "All {{name}}",
+      "allResponses": "All model responses",
+      "outcome": "Outcome",
+      "allOutcomes": "All outcomes",
+      "outcomes": {
+        "correct": "Selected answer matches",
+        "wrong": "Selected answer differs"
+      },
+      "answerFormat": "Answer format",
+      "allFormats": "All formats",
+      "formats": {
+        "choice": "Choice",
+        "noul": "Yes / no",
+        "score": "Ordinal score"
+      },
+      "searchLabel": "Search all cases",
+      "searchPlaceholder": "Search all cases or paste an ID…",
+      "loadingQuestions": "Loading questions…",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page",
+      "jumpToPage": "Jump to page",
+      "choiceCount": "{{n}} choices",
+      "labelSources": {
+        "teacher": "AI-TEACHER ANSWER",
+        "formal": "RULE-DERIVED ANSWER",
+        "dataset": "DATASET ANSWER KEY"
+      },
+      "decisionRules": "Decision rules supplied to the model",
+      "showAllAnswers": "Show all {{n}} allowed answers",
+      "hideAnswers": "Hide answers",
+      "revealAnswers": "Reveal reference and model answers",
+      "savedReference": "Saved reference",
+      "alsoAccepted": "Also accepted: {{answers}}",
+      "modelDecisions": "Model decisions",
+      "noSelectedAnswer": "No selected answer",
+      "optionProbabilities": "Option probabilities · {{source}}",
+      "astraAudit": "Separate Astra audit · {{verdict}}",
+      "loadingQuestion": "Loading saved question…",
+      "noMatches": "No matching questions. Change the filters or search."
+    }
+  },
   "replay": {
     "emptyTitle": "A recording worth inspecting",
     "emptyDetail": "Finish an evaluation to replay actual decisions side by side, aligned at the first request.",
@@ -323,6 +451,66 @@
     "typesafeKeyMissing": "Add TYPESAFE_API_KEY to your local .env file.",
     "typesafeAccount": "TypeSafe account",
     "keysNote": "Keys stay on this machine. Reports exclude credentials and raw CLI logs. Third-party datasets are downloaded from their original sources."
+  },
+  "abcd": {
+    "intro": "Frozen ABCD assessment · 300 conversations, 2,400 natural input variants and 144 separate synthetic controls. Each model has up to 2,544 saved records. Browsing makes no model calls.",
+    "errors": {
+      "readFailed": "Unable to read saved ABCD data"
+    },
+    "offline": {
+      "title": "ABCD case text stays in the local workspace",
+      "body": "The portable report contains aggregate results. Open the live Arena app on the machine holding the saved assessment to browse conversations, policies and model responses. Original dataset text is not bundled into this public report."
+    },
+    "filters": {
+      "policyInput": "Policy input",
+      "bothConditions": "Both policy conditions",
+      "fullHandbook": "Full handbook",
+      "retrievedPolicy": "Retrieved policy",
+      "decisionType": "Decision type",
+      "route": "Act, speak or finish",
+      "action": "Choose among all 30 actions",
+      "syntheticAction": "Synthetic context control",
+      "conversationId": "Conversation ID",
+      "allConversations": "All conversations"
+    },
+    "conditions": {
+      "full_handbook": "full handbook",
+      "retrieved_policy": "retrieved policy"
+    },
+    "list": {
+      "syntheticControl": "Synthetic control",
+      "conversation": "Conversation {{id}}",
+      "meta": "{{condition}} · checkpoint {{checkpoint}}",
+      "previous": "Previous ABCD cases",
+      "next": "Next ABCD cases"
+    },
+    "conversation": {
+      "title": "Conversation visible to the model",
+      "note": "Only the saved history before this checkpoint. Later messages and the answer key were not part of the model input.",
+      "history": "History",
+      "policy": "Policy supplied to the model · {{n}} characters",
+      "exactState": "Exact saved state text"
+    },
+    "detail": {
+      "syntheticTag": "SYNTHETIC CONTROL",
+      "datasetTag": "DATASET NEXT-STEP REFERENCE",
+      "allowedChoices": "Allowed choices · {{n}}",
+      "referenceAnswer": "Reference answer · scoring only",
+      "referenceNote": "The reference is the recorded dataset decision (or the declared synthetic rule), not proof that it is the only reasonable next step. End-of-conversation checkpoints were synthesized.",
+      "savedResponses": "Saved model responses",
+      "provenance": "Reference provenance · not supplied as input",
+      "noCases": "No cases match these filters.",
+      "loading": "Loading saved cases…"
+    },
+    "table": {
+      "model": "Model",
+      "selectedAnswer": "Selected answer",
+      "answerMatches": "Answer matches",
+      "outputStatus": "Output status",
+      "inputTokens": "Input tokens",
+      "requestTime": "Request time",
+      "passedChecks": "Passed checks"
+    }
   },
   "errors": {
     "duplicate_entrants": "Duplicate entrants",

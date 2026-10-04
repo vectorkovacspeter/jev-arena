@@ -43,12 +43,11 @@ import type {
   ArenaEvent,
   LocaleInfo,
 } from "./types";
-import type { TFunction } from "i18next";
 import { initI18n, setLanguage, useTranslation, useFormat, bundledLocales } from "./i18n";
 import { Trans } from "react-i18next";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { EnglishOnly } from "./EnglishOnly";
-import { packLabel, familyLabel } from "./labels";
+import { packLabel, familyLabel, errorText } from "./labels";
 
 
 import "./styles.css";
@@ -146,17 +145,6 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
   }
   return r.json();
 }
-
-const errorText = (t: TFunction, e: unknown) => {
-  const x = e as Error & { code?: string; params?: Record<string, unknown> };
-  if (!x.code) return x.message;
-  const params = { ...x.params };
-  if (x.code === "setup_needed" && Array.isArray(params.models))
-    params.details = (params.models as { name: string; reason_code: string }[])
-      .map((m) => `${m.name}: ${t(`readiness.${m.reason_code}`)}`)
-      .join("; ");
-  return t(`errors.${x.code}`, { ...params, defaultValue: x.message });
-};
 
 const label = (s: string) =>
   s.replaceAll("_", " ").replace(/^./, (x) => x.toUpperCase());

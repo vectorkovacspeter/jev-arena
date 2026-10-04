@@ -2,7 +2,7 @@
 // can't be detected by the parser; these prefixes protect them. Add any new dynamic key family here.
 // The parser tests patterns against "<namespace><namespaceSeparator><key>", so the default
 // namespace "translation" and the ":" separator are part of the matched string.
-const dynamic = ["errors", "readiness", "packs", "families", "status", "nav", "results.verdicts", "operations.directions", "operations.queues", "operations.topics"];
+const dynamic = ["errors", "readiness", "packs", "families", "status", "nav", "results.verdicts", "operations.directions", "operations.queues", "operations.topics", "explore.types", "explore.errors", "abcd.errors", "abcd.conditions"];
 // Keys reserved for upcoming code (common.pp is appended to fmt.points output from Task 9 on).
 const reserved = ["common.pp"];
 

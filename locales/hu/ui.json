@@ -8,7 +8,12 @@
       "smoke": "Gyors",
       "demo": "Demó",
       "full": "Teljes"
-    }
+    },
+    "unavailable": "Nem elérhető",
+    "unknown": "Ismeretlen",
+    "yes": "Igen",
+    "no": "Nem",
+    "pageRange": "{{from}}–{{to}} / {{total}}"
   },
   "shell": {
     "skipToContent": "Ugrás a tartalomra",
@@ -262,6 +267,129 @@
       "teacherAgreement": "A nyilvános tanárral való egyezés nem azonos az igazolt helyességgel. Részleges mezőny alapján nem hirdetünk összesített győztest."
     }
   },
+  "explore": {
+    "allQuestionTypes": "Minden kérdéstípus",
+    "jumpToType": "Ugrás kérdéstípusra",
+    "questionType": "Kérdéstípus",
+    "model": "Modell",
+    "failedOutput": "Sikertelen kimenet vagy kérés",
+    "unsupported": "Nem támogatott",
+    "matchingQuestions_one": "{{n}} találat",
+    "matchingQuestions_other": "{{n}} találat",
+    "types": {
+      "ag-news": "Hírtémák · AG News",
+      "sst-2": "Hangulatelemzés · SST-2",
+      "banking77": "Banki szándékok · 77 választási lehetőség",
+      "xnli": "Többnyelvű következtetés · XNLI",
+      "massive": "Többnyelvű szándékfelismerés · MASSIVE",
+      "scifact": "Dokumentumrelevancia · SciFact",
+      "arena-fresh": "Kifejezett szabályzati előírások",
+      "robustness": "Módosított bemenetek ellenőrzése"
+    },
+    "errors": {
+      "requestFailed": "A kérés sikertelen ({{status}})",
+      "reportAnalysis": "Ennek a mentett jelentésnek a kérdéstípusait a helyi Arena alkalmazásban tudod megnyitni."
+    },
+    "analysis": {
+      "title": "Eredmények kérdéstípusonként",
+      "intro": "Hasonlítsd össze az összes modellt egy feladaton, vagy vizsgálj meg egy modellt több feladaton át.",
+      "loading": "Mentett elemzés betöltése…",
+      "compareAll": "Összes profil összehasonlítása ({{n}})",
+      "questionSet": "Kérdéskör",
+      "scopes": {
+        "shared": "Ugyanazok a támogatott kérdések minden modellnek",
+        "sharedNone": "Ugyanazok a támogatott kérdések minden modellnek · ennél a típusnál nincs ilyen",
+        "supported": "Az egyes modellek által megkísérelt kérdések",
+        "teacher": "Csak az MI-tanárral való egyezés"
+      },
+      "score": "Pontszám",
+      "metrics": {
+        "label": "Kiválasztott válasz",
+        "strict": "Helyes + használható kimenet"
+      },
+      "highestScore": "{{name}} · legmagasabb megjelenített pontszám",
+      "teacherScope": "{{n}} MI-tanár által megválaszolt kérdés. Az MI válaszaival való egyezés, nem független pontosság.",
+      "sharedScope": "Modellenként {{shared}} azonos, válaszkulcsos kérdés. {{excluded}} kérdés kimaradt, mert nem minden modell támogatta vagy fejezte be.",
+      "supportedScope": "{{n}} tervezett válaszkulcsos kérdés. A támogatott nevezők eltérhetnek; a korábbi rögzítésben szereplő kapacitáshibák hibák maradnak.",
+      "teacherExcluded": "{{n}} MI-tanár által megválaszolt eset kizárva.",
+      "openQuestions": "Kérdések megnyitása →",
+      "noSharedQuestions": "Ebből a típusból egyetlen kérdést sem támogatott minden modell. Automatikusan az egyes modellek által megkísérelt kérdéseket mutatjuk, a nem támogatott és hiányzó esetek számával együtt.",
+      "teacherFootnote": "Az egyezések és nem-egyezések összege a pontozott kérdések száma. A nem támogatott azt jelenti, hogy a bemenet túllépte egy tesztelt modell vagy interfész korlátját; ez nem rossz válasz. A hiányzó azt jelenti, hogy nincs mentett előrejelzés. A lefedettség a teljes kiválasztott kérdéstípust számolja, akkor is, ha a pontszám csak a közös kérdéseket használja. A sikertelen kimenetek és kérések külön diagnosztikát jelentenek a pontozott kérdéseken; a kiválasztott válasz egyezhet a kulccsal, miközben a kimenet nem megy át az ellenőrzésen.",
+      "scoredFootnote": "A helyes és nem helyes válaszok összege a pontozott kérdések száma. A nem támogatott azt jelenti, hogy a bemenet túllépte egy tesztelt modell vagy interfész korlátját; ez nem rossz válasz. A hiányzó azt jelenti, hogy nincs mentett előrejelzés. A lefedettség a teljes kiválasztott kérdéstípust számolja, az MI-tanár eseteit kivéve, akkor is, ha a pontszám csak a közös kérdéseket használja. A sikertelen kimenetek és kérések külön diagnosztikát jelentenek a pontozott kérdéseken; a kiválasztott válasz egyezhet a kulccsal, miközben a kimenet nem megy át az ellenőrzésen.",
+      "sortingNote": "A kiválasztott pontszám szerint rendezve; az azonos értékek ugyanazt a mért eredményt jelentik. Leíró szeletek, nem szignifikanciatesztek. A minőségi kérések időzítése a sikertelen próbálkozásokat is tartalmazza, és eltér a külön rövid bemenetes időzítési blokkoktól. A teljes futtatás megbízhatósági és munkafolyamat-diagnosztikája lent következik."
+    },
+    "insights": {
+      "banking77": "Ez a feladat mind a 77 szándékot megadja. A Plumb és a tesztelt SemIf interfész 16-ot fogad el. A Winnow natív szervere 64-et fogad el, de az Arena eredetileg 255-öt jelzett: mind az 500 kérést elutasította. Az alábbi korábbi 0/500 ezt a kapacitáseltérést rögzíti, és nem a banki döntések minőségét méri. Ezek az esetek egyik modellnél sem számítanak bele a közös főmutatóba.",
+      "agNews": "Az angol Laya 34 olyan címkét talál el, amelyet a Jev nem; a Jev 14 olyat, amelyet a Laya nem. Mindkettő eltalál 427-et; mindkettő elvét 25-öt. Ezek válaszkulcs-egyezések: nézd meg a <link>450-es eset kosárlabda / World referenciáját →</link>",
+      "scifactTitle": "Mely releváns dokumentumokat találták meg?",
+      "scifactIntro": "453 irreleváns dokumentum; 47 releváns. Az első opciót választó kontroll 90,6%-ot ér el, miközben a 47-ből egyet sem talál meg.",
+      "relevantFound": "Megtalált releváns / 47",
+      "irrelevantPassed": "Átengedett irreleváns",
+      "yesPrecision": "Az „igen” precizitása",
+      "scifactNote": "A kiválasztott címkék diagnosztikája, független az alábbi kimenet-érvényességi választótól. A precizitás nem értelmezett, ha egy modell soha nem választja az „igen” választ."
+    },
+    "table": {
+      "accuracy": "Pontosság",
+      "agreement": "Egyezés",
+      "correctScored": "Helyes / pontozott",
+      "matchesScored": "Egyező / pontozott",
+      "nonMatches": "Nem egyező",
+      "notCorrect": "Nem helyes",
+      "coverage": "Lefedettség · teljes kérdéstípus",
+      "qualityLatency": "Minőségi P50 / P95",
+      "evidence": "Bizonyíték",
+      "notRun": "Nem futott",
+      "noScored": "Nincs pontozott kérdés",
+      "invalidIncluded": "ebből {{n}} érvénytelen kimenet",
+      "attempted": "{{n}} / {{planned}} megkísérelve",
+      "coverageGaps": "{{unsupported}} nem támogatott · {{missing}} hiányzik",
+      "inspect": "Vizsgálat →"
+    },
+    "cases": {
+      "reportOnly": "Az esetek pontos szövege a helyi Arena munkaterületen marad. Ez a jelentés csak összesített bizonyítékokat tartalmaz.",
+      "chooseRun": "Válassz egy mentett futtatást a kérdései megtekintéséhez.",
+      "allOfType": "Összes: {{name}}",
+      "allResponses": "Minden modellválasz",
+      "outcome": "Kimenetel",
+      "allOutcomes": "Minden kimenetel",
+      "outcomes": {
+        "correct": "A kiválasztott válasz egyezik",
+        "wrong": "A kiválasztott válasz eltér"
+      },
+      "answerFormat": "Válaszformátum",
+      "allFormats": "Minden formátum",
+      "formats": {
+        "choice": "Választás",
+        "noul": "Igen / nem",
+        "score": "Sorrendi pontszám"
+      },
+      "searchLabel": "Keresés az összes esetben",
+      "searchPlaceholder": "Keress az összes esetben, vagy illessz be egy azonosítót…",
+      "loadingQuestions": "Kérdések betöltése…",
+      "previous": "Előző",
+      "next": "Következő",
+      "page": "Oldal",
+      "jumpToPage": "Ugrás oldalra",
+      "choiceCount": "{{n}} választási lehetőség",
+      "labelSources": {
+        "teacher": "MI-TANÁR VÁLASZA",
+        "formal": "SZABÁLYBÓL LEVEZETETT VÁLASZ",
+        "dataset": "ADATKÉSZLET VÁLASZKULCSA"
+      },
+      "decisionRules": "A modellnek megadott döntési szabályok",
+      "showAllAnswers": "Az összes ({{n}}) engedélyezett válasz megjelenítése",
+      "hideAnswers": "Válaszok elrejtése",
+      "revealAnswers": "Referencia- és modellválaszok felfedése",
+      "savedReference": "Mentett referencia",
+      "alsoAccepted": "Szintén elfogadott: {{answers}}",
+      "modelDecisions": "Modelldöntések",
+      "noSelectedAnswer": "Nincs kiválasztott válasz",
+      "optionProbabilities": "Opciók valószínűsége · {{source}}",
+      "astraAudit": "Külön Astra-ellenőrzés · {{verdict}}",
+      "loadingQuestion": "Mentett kérdés betöltése…",
+      "noMatches": "Nincs találat. Módosítsd a szűrőket vagy a keresést."
+    }
+  },
   "replay": {
     "emptyTitle": "Érdemes megnézni a felvételt",
     "emptyDetail": "Fejezz be egy kiértékelést, és a valódi döntéseket egymás mellett, az első kéréshez igazítva játszhatod vissza.",
@@ -323,6 +451,66 @@
     "typesafeKeyMissing": "Add hozzá a TYPESAFE_API_KEY-t a helyi .env fájlodhoz.",
     "typesafeAccount": "TypeSafe-fiók",
     "keysNote": "A kulcsok ezen a gépen maradnak. A jelentések nem tartalmaznak hitelesítő adatokat és nyers CLI-naplókat. A külső adatkészleteket az eredeti forrásukból töltjük le."
+  },
+  "abcd": {
+    "intro": "Rögzített ABCD-értékelés · 300 beszélgetés, 2400 természetes bemenetváltozat és 144 különálló szintetikus kontroll. Modellenként legfeljebb 2544 mentett rekord. A böngészés nem hív modellt.",
+    "errors": {
+      "readFailed": "Nem sikerült beolvasni a mentett ABCD-adatokat"
+    },
+    "offline": {
+      "title": "Az ABCD-esetek szövege a helyi munkaterületen marad",
+      "body": "A hordozható jelentés összesített eredményeket tartalmaz. A beszélgetések, szabályzatok és modellválaszok böngészéséhez nyisd meg az élő Arena alkalmazást azon a gépen, amelyen a mentett értékelés van. Az eredeti adatkészlet szövege nincs benne ebben a nyilvános jelentésben."
+    },
+    "filters": {
+      "policyInput": "Szabályzat-bemenet",
+      "bothConditions": "Mindkét szabályzati feltétel",
+      "fullHandbook": "Teljes kézikönyv",
+      "retrievedPolicy": "Visszakeresett szabályzat",
+      "decisionType": "Döntéstípus",
+      "route": "Cselekvés, válasz vagy lezárás",
+      "action": "Választás mind a 30 művelet közül",
+      "syntheticAction": "Szintetikus kontextuskontroll",
+      "conversationId": "Beszélgetés-azonosító",
+      "allConversations": "Minden beszélgetés"
+    },
+    "conditions": {
+      "full_handbook": "teljes kézikönyv",
+      "retrieved_policy": "visszakeresett szabályzat"
+    },
+    "list": {
+      "syntheticControl": "Szintetikus kontroll",
+      "conversation": "{{id}}. beszélgetés",
+      "meta": "{{condition}} · ellenőrzőpont: {{checkpoint}}",
+      "previous": "Előző ABCD-esetek",
+      "next": "Következő ABCD-esetek"
+    },
+    "conversation": {
+      "title": "A modell számára látható beszélgetés",
+      "note": "Csak az ellenőrzőpont előtti mentett előzmények. A későbbi üzenetek és a válaszkulcs nem voltak a modell bemenetének részei.",
+      "history": "Előzmények",
+      "policy": "A modellnek megadott szabályzat · {{n}} karakter",
+      "exactState": "A mentett állapot pontos szövege"
+    },
+    "detail": {
+      "syntheticTag": "SZINTETIKUS KONTROLL",
+      "datasetTag": "ADATKÉSZLET SZERINTI KÖVETKEZŐ LÉPÉS",
+      "allowedChoices": "Engedélyezett lehetőségek · {{n}}",
+      "referenceAnswer": "Referenciaválasz · csak pontozáshoz",
+      "referenceNote": "A referencia az adatkészletben rögzített döntés (vagy a megadott szintetikus szabály), nem bizonyíték arra, hogy ez az egyetlen észszerű következő lépés. A beszélgetésvégi ellenőrzőpontok szintetikusan készültek.",
+      "savedResponses": "Mentett modellválaszok",
+      "provenance": "A referencia eredete · nem volt a bemenet része",
+      "noCases": "Nincs a szűrőknek megfelelő eset.",
+      "loading": "Mentett esetek betöltése…"
+    },
+    "table": {
+      "model": "Modell",
+      "selectedAnswer": "Kiválasztott válasz",
+      "answerMatches": "Egyező válasz",
+      "outputStatus": "Kimenet állapota",
+      "inputTokens": "Bemeneti tokenek",
+      "requestTime": "Kérés ideje",
+      "passedChecks": "Átment az ellenőrzésen"
+    }
   },
   "errors": {
     "duplicate_entrants": "Ismétlődő résztvevők",
