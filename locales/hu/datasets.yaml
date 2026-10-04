@@ -20,7 +20,7 @@ slots:
     family: HuSST
     repo: NYTK/HuSST
     revision: 82bdd5bf81e2ec6e318ca88cb1e8d62506aa43c3
-    files: [data/val.json]   # validation; the test split has no public labels
+    files: [data/train.json]   # train split: validation is 93% negative once neutral is dropped (697 neg / 33 pos); train gives a balanced 250/250 like English SST-2. Test has no public labels.
     fields: {text: sentence, label: label, id: id}
     sample: 500
     drop_labels: [neutral]

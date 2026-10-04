@@ -238,3 +238,7 @@ def test_cli_prepare(monkeypatch, capsys):
     monkeypatch.undo()
     assert main(["prepare", "--lang", "en"]) == 1
     assert capsys.readouterr().out.startswith("Error:")
+
+def test_hu_sst2_uses_balanced_train_split():
+    slot = datasets.load_slots("hu")["sst2"]
+    assert slot.files == ["data/train.json"] and slot.drop_labels == ["neutral"] and (slot.sample, slot.seed) == (500, 5090)
