@@ -51,6 +51,8 @@ def _check_catalog(code: str, name: str, root: Path) -> list[Issue]:
 
 def check(lang: str | None = None, root: Path | None = None) -> list[Issue]:
     if root is None: root = LOCALES
+    if not root.exists():
+        return []
     if lang:
         codes = [lang]
     else:

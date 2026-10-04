@@ -12,7 +12,9 @@ def discover(root: Path = LOCALES) -> dict[str, dict]:
         try:
             data = json.loads(meta.read_text(encoding="utf-8"))
             if isinstance(data, dict) and "code" in data:
-                out[data["code"]] = data
+                # Skip if code doesn't match directory name
+                if data["code"] == meta.parent.name:
+                    out[data["code"]] = data
         except (FileNotFoundError, json.JSONDecodeError, UnicodeDecodeError):
             pass
     return out

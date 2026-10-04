@@ -13,7 +13,7 @@ def write(root, code, ui, meta=None):
 
 def levels(issues): return sorted((i.level, i.key) for i in issues)
 
-# Original tests
+# Original tests - kept as-is for backward compatibility
 def test_clean_locale_has_no_issues(tmp_path):
     write(tmp_path, "en", {"a": "Hi {{name}}"}); write(tmp_path, "xx", {"a": "Szia {{name}}"})
     assert check.check("xx", tmp_path) == []
@@ -30,11 +30,25 @@ def test_plural_group_needs_other(tmp_path):
     write(tmp_path, "en", {"n_one": "{{count}} x", "n_other": "{{count}} xs"})
     write(tmp_path, "xx", {"n_one": "{{count}} y"})
     issues = check.check("xx", tmp_path)
-    assert [i for i in issues if i.level == "error" and i.key == "n" and "plural" in i.message]
+    # Exact assertions for plural group error
+    errors = [i for i in issues if i.level == "error"]
+    assert len(errors) == 1
+    assert errors[0].lang == "xx"
+    assert errors[0].file == "ui.json"
+    assert errors[0].key == "n"
+    assert "plural group" in errors[0].message
+    # Also expect warning for missing n_other
+    warnings = [i for i in issues if i.level == "warning" and i.key == "n_other"]
+    assert len(warnings) == 1
 
 def test_bad_metadata_is_error(tmp_path):
     write(tmp_path, "en", {"a": "A"}); write(tmp_path, "xx", {"a": "A"}, meta={**META, "status": "done"})
-    assert any(i.level == "error" and i.file == "locale.json" for i in check.check("xx", tmp_path))
+    issues = check.check("xx", tmp_path)
+    assert len(issues) == 1
+    assert issues[0].level == "error"
+    assert issues[0].file == "locale.json"
+    assert issues[0].key == "status"
+    assert "complete or beta" in issues[0].message
 
 def test_new_language_scaffold_is_valid_and_empty(tmp_path):
     write(tmp_path, "en", {"g": {"a": "A {{n}}"}})
@@ -46,28 +60,44 @@ def test_new_language_scaffold_is_valid_and_empty(tmp_path):
 def test_repo_locales_have_no_errors():
     assert [i for i in check.check() if i.level == "error"] == []
 
-# New comprehensive tests per review feedback
+# New comprehensive tests with exact assertions
 
 def test_missing_locale_json_is_error(tmp_path):
     write(tmp_path, "en", {"a": "A"})
     d = tmp_path / "xx"; d.mkdir()
     (d / "ui.json").write_text(json.dumps({"a": "A"}), encoding="utf-8")
     issues = check.check("xx", tmp_path)
-    assert any(i.level == "error" and i.file == "locale.json" and "not found" in i.message for i in issues)
+    assert len(issues) == 1
+    assert issues[0].level == "error"
+    assert issues[0].file == "locale.json"
+    assert "not found" in issues[0].message
 
 def test_invalid_json_in_locale_is_error(tmp_path):
     write(tmp_path, "en", {"a": "A"})
     d = tmp_path / "xx"; d.mkdir()
     (d / "locale.json").write_text("invalid json", encoding="utf-8")
     issues = check.check("xx", tmp_path)
-    assert any(i.level == "error" and i.file == "locale.json" for i in issues)
+    # Exact assertion for metadata error
+    errors = [i for i in issues if i.level == "error"]
+    assert len(errors) == 1
+    assert errors[0].file == "locale.json"
+    # Also warnings for missing catalog keys
+    warnings = [i for i in issues if i.level == "warning" and i.file == "ui.json"]
+    assert len(warnings) >= 1
 
 def test_non_object_locale_json_is_error(tmp_path):
     write(tmp_path, "en", {"a": "A"})
     d = tmp_path / "xx"; d.mkdir()
     (d / "locale.json").write_text(json.dumps([1, 2, 3]), encoding="utf-8")
     issues = check.check("xx", tmp_path)
-    assert any(i.level == "error" and i.file == "locale.json" and "object" in i.message for i in issues)
+    # Exact assertion for metadata error
+    errors = [i for i in issues if i.level == "error"]
+    assert len(errors) == 1
+    assert errors[0].file == "locale.json"
+    assert "object" in errors[0].message
+    # Also warnings for missing catalog keys
+    warnings = [i for i in issues if i.level == "warning" and i.file == "ui.json"]
+    assert len(warnings) >= 1
 
 def test_missing_required_metadata_field_is_error(tmp_path):
     write(tmp_path, "en", {"a": "A"})
@@ -76,41 +106,66 @@ def test_missing_required_metadata_field_is_error(tmp_path):
     (d / "locale.json").write_text(json.dumps(incomplete_meta), encoding="utf-8")
     (d / "ui.json").write_text(json.dumps({"a": "A"}), encoding="utf-8")
     issues = check.check("xx", tmp_path)
-    assert any(i.level == "error" and i.file == "locale.json" and i.key == "name" and "missing" in i.message for i in issues)
+    assert len(issues) == 1
+    assert issues[0].level == "error"
+    assert issues[0].file == "locale.json"
+    assert issues[0].key == "name"
+    assert "missing" in issues[0].message
 
-def test_code_mismatch_without_lang_argument_is_error(tmp_path):
+def test_code_mismatch_is_error(tmp_path):
     write(tmp_path, "en", {"a": "A"})
     d = tmp_path / "xx"; d.mkdir(parents=True)
     (d / "locale.json").write_text(json.dumps({"code": "yy", **META}), encoding="utf-8")
     (d / "ui.json").write_text(json.dumps({"a": "A"}), encoding="utf-8")
-    issues = check.check(None, tmp_path)  # No lang specified, so checks all directories
-    # Should report error that code doesn't match directory name
-    assert any(i.level == "error" and i.file == "locale.json" and "match directory" in i.message for i in issues)
+    issues = check.check(None, tmp_path)  # No lang specified
+    assert len(issues) == 1
+    assert issues[0].level == "error"
+    assert issues[0].file == "locale.json"
+    assert issues[0].key == "code"
+    assert "match directory" in issues[0].message
 
 def test_non_string_value_is_error(tmp_path):
     write(tmp_path, "en", {"a": "A"})
     write(tmp_path, "xx", {"a": 123})
     issues = check.check("xx", tmp_path)
-    assert any(i.level == "error" and i.file == "ui.json" and i.key == "a" and "string" in i.message for i in issues)
+    assert len(issues) == 1
+    assert issues[0].level == "error"
+    assert issues[0].file == "ui.json"
+    assert issues[0].key == "a"
+    assert "string" in issues[0].message
 
 def test_discover_skips_broken_locale(tmp_path):
     write(tmp_path, "en", {"a": "A"})
     write(tmp_path, "good", {"a": "A"})
-    # Create broken locale
     d = tmp_path / "broken"; d.mkdir()
     (d / "locale.json").write_text("invalid", encoding="utf-8")
     result = discover(tmp_path)
-    # Should have en and good, but not broken
     assert "en" in result
     assert "good" in result
     assert "broken" not in result
+
+def test_discover_skips_mismatched_code(tmp_path):
+    write(tmp_path, "en", {"a": "A"})
+    d = tmp_path / "xx"; d.mkdir()
+    (d / "locale.json").write_text(json.dumps({"code": "yy", **META}), encoding="utf-8")
+    (d / "ui.json").write_text(json.dumps({"a": "A"}), encoding="utf-8")
+    result = discover(tmp_path)
+    assert "en" in result
+    assert "xx" not in result
+    assert "yy" not in result
 
 def test_summary_includes_missing_count(tmp_path):
     write(tmp_path, "en", {"a": "A", "b": "B", "c": "C"})
     write(tmp_path, "xx", {"a": "X"})  # Missing b and c
     summary = check.summary("xx", tmp_path)
     assert len(summary) == 1
-    assert "100.0% complete (2 missing)" in summary[0] or "33.3% complete (2 missing)" in summary[0]
+    # Exact assertion: deterministic missing count and percentage
+    assert summary[0] == "xx ui.json: 33.3% complete (2 missing)"
+
+def test_check_on_nonexistent_root_returns_empty(tmp_path):
+    nonexistent = tmp_path / "does_not_exist"
+    issues = check.check(None, nonexistent)
+    assert issues == []
 
 def test_cli_check_returns_1_on_error(tmp_path, monkeypatch):
     write(tmp_path, "en", {"a": "A"})
@@ -133,7 +188,20 @@ def test_cli_quiet_suppresses_warnings(tmp_path, monkeypatch, capsys):
     main(["check", "--quiet"])
     captured = capsys.readouterr()
     assert "WARNING" not in captured.out
-    assert "ui.json:" in captured.out  # Summary line should still print
+    assert "ui.json:" in captured.out
+
+def test_cli_quiet_with_error_still_prints_error(tmp_path, monkeypatch, capsys):
+    write(tmp_path, "en", {"a": "A", "b": "B"})
+    write(tmp_path, "xx", {"a": "X", "c": "extra"})  # Extra key c (error) + missing b (warning)
+    monkeypatch.setattr(check, "LOCALES", tmp_path)
+    result = main(["check", "--quiet"])
+    captured = capsys.readouterr()
+    assert result == 1
+    # ERROR line should be printed even with --quiet
+    assert "ERROR" in captured.out
+    assert "key not in en" in captured.out or "extra" in captured.out
+    # WARNING line should NOT be printed with --quiet
+    assert "WARNING" not in captured.out
 
 def test_cli_check_with_lang_argument(tmp_path, monkeypatch):
     write(tmp_path, "en", {"a": "A"})
@@ -145,18 +213,22 @@ def test_cli_check_with_lang_argument(tmp_path, monkeypatch):
     result = main(["check", "--lang", "yy"])
     assert result == 1
 
-def test_cli_new_language_with_invalid_code(tmp_path, monkeypatch):
+def test_cli_new_language_with_invalid_code(tmp_path, monkeypatch, capsys):
     write(tmp_path, "en", {"a": "A"})
     monkeypatch.setattr(check, "LOCALES", tmp_path)
     result = main(["new-language", "invalid_code", "--name", "Test", "--native", "Teszt"])
     assert result == 1
+    captured = capsys.readouterr()
+    assert "Error:" in captured.out
 
-def test_cli_new_language_when_exists(tmp_path, monkeypatch):
+def test_cli_new_language_when_exists(tmp_path, monkeypatch, capsys):
     write(tmp_path, "en", {"a": "A"})
     write(tmp_path, "xx", {"a": "A"})
     monkeypatch.setattr(check, "LOCALES", tmp_path)
     result = main(["new-language", "xx", "--name", "Test", "--native", "Teszt"])
     assert result == 1
+    captured = capsys.readouterr()
+    assert "Error:" in captured.out
 
 def test_new_language_validates_code(tmp_path, monkeypatch):
     write(tmp_path, "en", {"a": "A"})
@@ -180,3 +252,5 @@ def test_non_string_falsy_value_no_extra_warning(tmp_path):
     warnings = [i for i in issues if i.level == "warning"]
     assert len(errors) == 1
     assert len(warnings) == 0
+    assert errors[0].key == "a"
+    assert "string" in errors[0].message
