@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI,HTTPException,Request,Query
 from fastapi.responses import FileResponse,StreamingResponse,HTMLResponse,JSONResponse
 from fastapi.staticfiles import StaticFiles
+from arena import i18n
 from arena.config import ROOT,RUNS,DATA
 from arena.contracts import RunRequest
 from arena.controller import Controller,TERMINAL
@@ -48,6 +49,16 @@ async def local_boundary(request:Request,call_next):
 
 @app.get("/api/session")
 async def session():return {"token":TOKEN,"version":"0.1.0"}
+
+@app.get("/api/i18n")
+async def i18n_state():return {"language":i18n.get_language(),"locales":i18n.available()}
+
+@app.post("/api/i18n")
+async def i18n_set(request:Request):
+    body=await request.json()
+    try:i18n.set_language(str(body.get("language","")))
+    except ValueError as e:raise HTTPException(400,str(e))
+    return await i18n_state()
 
 @app.get("/api/readiness")
 async def readiness():return await controller.readiness()

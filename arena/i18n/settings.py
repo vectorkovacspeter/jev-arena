@@ -1,5 +1,20 @@
-def get_language():
-    return "en"
+from __future__ import annotations
+import json
+from arena.config import DATA, write_json
+from arena.i18n.locales import discover
 
-def set_language(code):
-    raise NotImplementedError
+SETTINGS = DATA / "settings.json"
+DEFAULT = "en"
+
+def _read() -> dict:
+    try: return json.loads(SETTINGS.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError): return {}
+
+def get_language() -> str:
+    code = _read().get("language", DEFAULT)
+    return code if code in discover() else DEFAULT
+
+def set_language(code: str) -> str:
+    if code not in discover(): raise ValueError(f"Unknown language: {code}")
+    write_json(SETTINGS, {**_read(), "language": code})
+    return code
