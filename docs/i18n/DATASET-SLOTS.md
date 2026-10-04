@@ -43,7 +43,7 @@ The Hungarian Full preset has 231 + 2000 + 1500 + 200 + 500 + 1440 + 1000 = **68
 
 ## Label sets
 
-Label groups live in `locales/<code>/prompts.yaml` under `labels.<group>` and map a **stable id** (the English label) to the localized label: `fresh_choice`, `directions`, `ticket_queues`, `sentiment`, `nli`, `sib_topics`, `massive_intents`, `banking77`. Cases carry `provenance["label_ids"] = {localized: stable id}` so scoring and episodes work in stable ids. Binary (`noul`) questions keep `no`/`yes` as protocol labels in every language and score questions keep `0`..`4`.
+Label groups live in `locales/<code>/prompts.yaml` under `labels.<group>` and map a **stable id** (the English label) to the localized label: `fresh_choice`, `directions`, `ticket_queues`, `sentiment`, `nli`, `sib_topics`, `massive_intents`, `banking77`. Cases carry `provenance["label_ids"] = {localized: stable id}`. Scoring compares the model's answer with the localized gold label (the question offers localized labels, so the answer is localized too); `label_ids` is used by episodes, which step their environment by stable id, and to map localized labels back to their English ids across languages (the UI compares episode answers by `answer_id`). Binary (`noul`) questions keep `no`/`yes` as protocol labels in every language and score questions keep `0`..`4`.
 
 ## Licences
 

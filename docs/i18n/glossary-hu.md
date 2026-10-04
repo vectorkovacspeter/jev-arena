@@ -123,11 +123,16 @@ Topics (`operations.topics.*`) and directions (`operations.directions.*`) are tr
 | yes / no (fresh state values) | igen / nem |
 | north / east / south / west | észak / kelet / dél / nyugat |
 | ticket | hibajegy |
-| ticket topics: payment / service outage / onboarding | fizetés / szolgáltatáskiesés / bevezetés |
+| ticket topics: payment / service outage / onboarding (episodes) | fizetés / szolgáltatáskiesés / bevezetés |
+| ticket topic: outage (Fresh `family1`) | kiesés — deliberately shorter than the episodes' "szolgáltatáskiesés"; each policy text names its own topic value, so keep the two apart |
 | restricted account | korlátozott fiók |
 | sentiment: negative / positive | negatív / pozitív |
 | NLI: entailment / neutral / contradiction | következik / semleges / ellentmond |
 | policy (in test text) | szabályzat |
-| distractor / injection (robustness) | zavaró / beinjektált (nem megbízható melléklet) |
+| robustness distractor ("Unrelated warehouse memo: …") | Nem kapcsolódó raktári feljegyzés: … |
+| robustness injection ("Quoted untrusted attachment (not a policy): …") | Idézett, nem megbízható melléklet (nem szabályzat): … |
+| SST-2 question: sentiment of a movie review | Milyen hangvételű ez a filmkritika? |
+| MASSIVE intents: social_post / lists_remove / play_radio | bejegyzés_közzététele_a_közösségi_médiában / elem_törlése_listából / rádió_bekapcsolása |
+| "prefer Reader for reads" (Fresh policy) | olvasáshoz az Olvasó eszközt válaszd — the label stays in the nominative ("Olvasó eszközt"), never inflected ("Olvasót"), so it appears verbatim |
 
 Label values inside policy text must match `labels.<group>` exactly; the model has to output them. Machine-readable ids such as intents are lowercase with underscores (`kártya_aktiválása`).
