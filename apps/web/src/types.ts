@@ -8,6 +8,7 @@ export type Model = {
   ready: boolean;
   prepared: boolean;
   reason: string | null;
+  reason_code: string | null;
   revision: string;
   resolved_revision: string | null;
   precision: string;

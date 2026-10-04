@@ -47,6 +47,7 @@ import type { TFunction } from "i18next";
 import { initI18n, setLanguage, useTranslation, useFormat, bundledLocales } from "./i18n";
 import { Trans } from "react-i18next";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { packLabel, familyLabel } from "./labels";
 
 
 import "./styles.css";
@@ -155,21 +156,6 @@ const errorText = (t: TFunction, e: unknown) => {
       .join("; ");
   return t(`errors.${x.code}`, { ...params, defaultValue: x.message });
 };
-
-const pct = (v: number | null | undefined, d = 1) =>
-  v == null ? "—" : `${(v * 100).toFixed(d)}%`;
-
-const num = (v: number | null | undefined, d = 0) =>
-  v == null ? "—" : v.toLocaleString(undefined, { maximumFractionDigits: d });
-
-const ms = (v: number | null | undefined) =>
-  v == null
-    ? "—"
-    : v >= 1000
-      ? `${(v / 1000).toFixed(2)}s`
-      : v < 1
-        ? "<1ms"
-        : `${v.toFixed(v < 10 ? 1 : 0)}ms`;
 
 const label = (s: string) =>
   s.replaceAll("_", " ").replace(/^./, (x) => x.toUpperCase());
@@ -517,7 +503,7 @@ function App() {
                     <option value={r.id} key={r.id}>
                       {t("overview.runOption", {
                         date: fmt.shortDate(r.created),
-                        preset: r.request.preset,
+                        preset: presetLabel(r.request.preset).toLocaleLowerCase(i18n.language),
                         count: r.request.model_ids.length,
                         id: r.id.slice(-6),
                         status: statusLabel(r.status),
@@ -573,7 +559,7 @@ function App() {
                 <span className="scope-label">
                   {result
                     ? t("overview.scope", {
-                        preset: result.preset.toUpperCase(),
+                        preset: presetLabel(result.preset).toLocaleUpperCase(i18n.language),
                         version: String(current?.manifest.version || "arena-v1").replace("arena-", "").toUpperCase(),
                         count: result.case_count,
                         n: fmt.number(result.case_count),
@@ -989,7 +975,7 @@ function App() {
                     <strong>{m.name}</strong>
                     <small>
                       {m.hosted ? t("overview.drawer.hosted") : t("overview.drawer.local", { size: m.size })}
-                      {m.diagnostic ? t("overview.drawer.control") : ""}
+                      {m.diagnostic && <> · {t("overview.drawer.control")}</>}
                     </small>
                   </span>
                   <span className={m.ready ? "accent" : "muted"}>
@@ -1200,12 +1186,15 @@ function Results({
   focus: string | null;
   onFocus: (s: string) => void;
 }) {
+  const { t } = useTranslation();
+  const fmt = useFormat();
+
   if (!result || !result.entrants.length)
     return (
       <Empty
         icon={Layers3}
-        title="No measured results yet"
-        detail="Run a comparison or choose a saved evaluation to inspect the results."
+        title={t("results.emptyTitle")}
+        detail={t("results.emptyDetail")}
       />
     );
 
@@ -1215,6 +1204,10 @@ function Results({
   const reviews = result.judge_jobs.filter(
     (j) => j.status === "complete" && j.data.models.includes(e.id),
   );
+  const accepted = reviews.filter((j) => ["correct", "acceptable"].includes(j.data.grade?.verdict || "")).length;
+  // Keeps the "N/A" fallback for missing values (fmt.fixed would render "—").
+  const fixedOrNull = (v: number | null | undefined, d: number) => (v == null ? null : fmt.fixed(v, d));
+  const verdictLabel = (v: string) => (v ? t(`results.verdicts.${v}`, { defaultValue: label(v) }) : "");
 
   return (
     <>
@@ -1226,60 +1219,63 @@ function Results({
             onClick={() => onFocus(r.id)}
           >
             {r.name}
-            <span>{pct(answerScore(r),2)}</span>
+            <span>{fmt.percent(answerScore(r), 2)}</span>
           </button>
         ))}
       </div>
       <div className="results-context">
-        <h2>{e.name}</h2><button className="text-button" onClick={()=>onProfile(e.id)}>About this model →</button>
+        <h2>{e.name}</h2><button className="text-button" onClick={()=>onProfile(e.id)}>{t("results.aboutModel")}</button>
         <span>
-          {num(e.matched.selected_label_correct)} / {num(e.matched.verified_count)} shared answer-key questions correct · AI-teacher answers excluded
+          {t("results.sharedCorrect", {
+            correct: fmt.number(e.matched.selected_label_correct),
+            total: fmt.number(e.matched.verified_count),
+          })}
         </span>
       </div>
       <div className="metrics-strip result-metrics">
         <Metric
-          name="Answer accuracy"
-          value={pct(answerScore(e),2)}
-          detail="Same questions as every other model; selected answers"
+          name={t("results.answerAccuracy")}
+          value={fmt.percent(answerScore(e), 2)}
+          detail={t("results.answerAccuracyDetail")}
           large
         />
         <Metric
-          name="Outputs passing checks"
-          value={pct(m.coverage)}
-          detail={`${num(m.valid)} valid / ${num(m.planned)} planned`}
+          name={t("results.outputsPassing")}
+          value={fmt.percent(m.coverage)}
+          detail={t("results.outputsPassingDetail", { valid: fmt.number(m.valid), planned: fmt.number(m.planned) })}
         />
         <Metric
-          name="Slower requests · P95"
-          value={ms(m.p95_ms)}
-          detail="All attempted quality requests"
+          name={t("results.slowerRequests")}
+          value={fmt.duration(m.p95_ms)}
+          detail={t("results.slowerRequestsDetail")}
         />
         <Metric
-          name="Confidence mismatch"
-          value={pct(m.ece)}
-          detail={`${num(m.probability_count)} probability distributions`}
+          name={t("results.confidenceMismatch")}
+          value={fmt.percent(m.ece)}
+          detail={t("results.confidenceMismatchDetail", { n: fmt.number(m.probability_count) })}
         />
       </div>
       <div className="results-grid">
         <section className="analysis-panel">
           <div className="section-title">
             <div>
-              <h2>Does confidence match reality?</h2>
-              <p>When this model says “80% confident”, is it right about 80% of the time? Only valid answers with probabilities are included.</p>
+              <h2>{t("results.calibration.title")}</h2>
+              <p>{t("results.calibration.intro")}</p>
             </div>
-            <span className="tag">CONFIDENCE GROUPS</span>
+            <span className="tag">{t("results.calibration.tag")}</span>
           </div>
-          {!m.probability_count && <p className="small muted">This profile has no valid probability outputs for this chart. Empty bars are not evidence of 0% correctness.</p>}
+          {!m.probability_count && <p className="small muted">{t("results.calibration.noProbabilities")}</p>}
           <svg
             viewBox="0 0 580 285"
             className="reliability-chart"
             role="img"
-            aria-label="Confidence calibration chart"
+            aria-label={t("results.calibration.chartLabel")}
           >
             {[0, 0.25, 0.5, 0.75, 1].map((v) => (
               <g key={v}>
                 <line x1="50" x2="548" y1={245 - v * 210} y2={245 - v * 210} />
                 <text x="40" y={249 - v * 210} textAnchor="end">
-                  {v * 100}%
+                  {fmt.percent(v, 0)}
                 </text>
               </g>
             ))}
@@ -1308,29 +1304,29 @@ function Results({
             ))}
           </svg>
           <div className="chart-foot">
-            <span>Across: stated confidence · height: actually correct</span>
-            <span>Numbers above bars = answers in that group</span>
-          </div><p className="small muted">Below the diagonal means too confident; above means too cautious. Empty groups mean no observations. These confidence estimates come from different methods and are not a universal ranking.</p>
+            <span>{t("results.calibration.axes")}</span>
+            <span>{t("results.calibration.barCounts")}</span>
+          </div><p className="small muted">{t("results.calibration.footnote")}</p>
         </section>
         <section className="analysis-panel">
           <div className="section-title">
             <div>
-              <h2>Benchmark breakdown · correct + usable</h2>
-              <p>Original strict scores, not the shared headline. Failed attempted requests count; unsupported inputs are excluded.</p>
+              <h2>{t("results.breakdown.title")}</h2>
+              <p>{t("results.breakdown.intro")}</p>
             </div>
           </div>
           <div className="family-bars">
             {Object.entries(m.families).map(([name, f]) => (
               <div key={name}>
                 <div>
-                  <span>{name}</span>
-                  <strong>{pct(f.correct / f.total)}</strong>
+                  <span>{familyLabel(t, name)}</span>
+                  <strong>{fmt.percent(f.correct / f.total)}</strong>
                 </div>
                 <div className="wide-track">
                   <i style={{ width: `${(f.correct / f.total) * 100}%` }} />
                 </div>
                 <small>
-                  {f.correct} correct / {f.total} supported · {f.failed} failed
+                  {t("results.breakdown.counts", { correct: f.correct, total: f.total, failed: f.failed })}
                 </small>
               </div>
             ))}
@@ -1339,64 +1335,58 @@ function Results({
       </div>
       <div className="results-grid">
         <section className="analysis-panel">
-          <h2>Technical details · original scoring</h2>
+          <h2>{t("results.technical.title")}</h2>
           <div className="ledger">
             {[
-              ["Macro F1", m.macro_f1?.toFixed(3)],
-              ["Binary Brier", m.brier_binary?.toFixed(4)],
-              ["Multiclass Brier", m.brier_multiclass?.toFixed(4)],
-              ["Negative log loss", m.nll?.toFixed(4)],
-              ["Expected-score MAE", m.ordinal_mae?.toFixed(4)],
-              ["Answer matches · original supported set", pct(m.selected_label_accuracy)],
-              ["Correct + usable · original supported set", pct(m.accuracy)],
+              [t("results.metrics.macroF1"), fixedOrNull(m.macro_f1, 3)],
+              [t("results.metrics.binaryBrier"), fixedOrNull(m.brier_binary, 4)],
+              [t("results.metrics.multiclassBrier"), fixedOrNull(m.brier_multiclass, 4)],
+              [t("results.metrics.negativeLogLoss"), fixedOrNull(m.nll, 4)],
+              [t("results.metrics.expectedScoreMae"), fixedOrNull(m.ordinal_mae, 4)],
+              [t("results.technical.answerMatchesOriginal"), fmt.percent(m.selected_label_accuracy)],
+              [t("results.technical.correctUsableOriginal"), fmt.percent(m.accuracy)],
               [
-                "Reference output-contract failures",
-                num(m.output_contract_failures),
+                t("results.technical.contractFailures"),
+                fmt.number(m.output_contract_failures),
               ],
-              ["Unsupported", num(m.unsupported)],
-              ["AI-teacher answers (excluded above)", num(m.teacher_count)],
-              ["Correct + usable · shared questions", pct(e.matched?.accuracy)],
+              [t("results.technical.unsupported"), fmt.number(m.unsupported)],
+              [t("results.technical.teacherExcluded"), fmt.number(m.teacher_count)],
+              [t("results.technical.correctUsableShared"), fmt.percent(e.matched?.accuracy)],
               [
-                "Shared inputs, including AI-teacher cases",
-                `${num(result.matched_count)} / ${num(result.case_count)}`,
+                t("results.technical.sharedInputs"),
+                `${fmt.number(result.matched_count)} / ${fmt.number(result.case_count)}`,
               ],
-              ["Shared answer-key questions", num(e.matched?.verified_count)],
+              [t("results.technical.sharedAnswerKey"), fmt.number(e.matched?.verified_count)],
             ].map(([a, b]) => (
               <div key={a}>
                 <span>{a}</span>
-                <strong>{b ?? "N/A"}</strong>
+                <strong>{b ?? t("common.notApplicable")}</strong>
               </div>
             ))}
           </div>
-          <p className="muted small">
-            Strict accuracy requires the reference label and Arena's output
-            contract. The post-hoc label-only diagnostic ignores output-contract
-            validity on the same reference cases. The overview presents the existing shared-question label comparison for clarity; original strict scores remain available here.
-          </p>
+          <p className="muted small">{t("results.technical.strictNote")}</p>
         </section>
         <section className="analysis-panel">
           <div className="section-title">
-            <h2>Astra spot-check · separate from the score</h2>
-            <span className="tag">CODEX CLI</span>
+            <h2>{t("results.judge.title")}</h2>
+            <span className="tag">{"CODEX CLI"}</span>
           </div>
           <div className="judge-summary">
             <ShieldCheck size={34} />
             <strong>
               {reviews.length}
-              <span>judgments for this entrant</span>
+              <span>{t("results.judge.judgments")}</span>
             </strong>
           </div>
           <p className="muted">
-            {reviews.length
-              ? `${reviews.filter((j) => ["correct", "acceptable"].includes(j.data.grade?.verdict || "")).length} judged correct or acceptable in the audit sample. `
-              : ""}
-            Code compares all scored answers with the saved answer key. Astra reads a sample to flag ambiguity or questionable references. Its opinions do not change the accuracy above. Identical answers share one review; model names and answer keys are hidden.
+            {reviews.length ? t("results.judge.acceptedInSample", { n: accepted }) + " " : ""}
+            {t("results.judge.explanation")}
           </p>
           <div className="audit-list">
             {reviews.slice(0, 3).map((j) => (
               <div key={j.job_id}>
                 <span className="accent">
-                  {label(j.data.grade?.verdict || "")}
+                  {verdictLabel(j.data.grade?.verdict || "")}
                 </span>
                 <p>{j.data.grade?.rationale}</p>
               </div>
@@ -1408,14 +1398,11 @@ function Results({
       <div className="limitations">
         <TriangleAlert size={18} />
         <div>
-          <strong>Scope of these results</strong>
+          <strong>{t("results.scope.title")}</strong>
           {result.limitations.map((s) => (
             <p key={s}>{s}</p>
           ))}
-          <p>
-            Public teacher agreement is distinct from verified correctness. No
-            overall winner is declared from a partial cohort.
-          </p>
+          <p>{t("results.scope.teacherAgreement")}</p>
         </div>
       </div>
     </>
@@ -1429,6 +1416,8 @@ function Replay({
   rid: string | null;
   result: Result | null;
 }) {
+  const { t } = useTranslation();
+  const fmt = useFormat();
   const [timeline, setTimeline] = useState<ArenaEvent[]>([]),
     [playing, setPlaying] = useState(false),
     [clock, setClock] = useState(0),
@@ -1446,16 +1435,16 @@ function Replay({
         id: e.id,
         name: e.name,
         events: timeline.filter(
-          (t) => t.kind === "prediction" && t.data.model_id === e.id,
+          (ev) => ev.kind === "prediction" && ev.data.model_id === e.id,
         ),
       })) || [];
     return values.map((v) => {
       let total = 0;
       return {
         ...v,
-        points: v.events.map((t) => {
-          total += Number(t.data.request_ms) || 0;
-          return { time: total, event: t };
+        points: v.events.map((ev) => {
+          total += Number(ev.data.request_ms) || 0;
+          return { time: total, event: ev };
         }),
         total,
       };
@@ -1466,7 +1455,7 @@ function Replay({
 
   useEffect(() => {
     if (!playing) return;
-    const t = setInterval(
+    const timer = setInterval(
       () =>
         setClock((c) => {
           if (c + 100 * speed >= duration) {
@@ -1477,23 +1466,23 @@ function Replay({
         }),
       100,
     );
-    return () => clearInterval(t);
+    return () => clearInterval(timer);
   }, [playing, speed, duration]);
 
   if (!rid || !result)
     return (
       <Empty
         icon={Play}
-        title="A recording worth inspecting"
-        detail="Finish an evaluation to replay actual decisions side by side, aligned at the first request."
+        title={t("replay.emptyTitle")}
+        detail={t("replay.emptyDetail")}
       />
     );
 
   return (
     <>
       <div className="replay-controls">
-        <span className="tag measured">RECORDED REPLAY</span>
-        <span>Quality requests only · load and warmup excluded</span>
+        <span className="tag measured">{t("replay.tag")}</span>
+        <span>{t("replay.scopeNote")}</span>
         <div>
           <button
             className="icon-btn"
@@ -1501,7 +1490,7 @@ function Replay({
               setClock(0);
               setPlaying(false);
             }}
-            aria-label="Restart replay"
+            aria-label={t("replay.restart")}
           >
             <RotateCcw size={17} />
           </button>
@@ -1513,16 +1502,16 @@ function Replay({
             }}
           >
             {playing ? <Pause size={16} /> : <Play size={16} />}{" "}
-            {playing ? "Pause" : "Play"}
+            {playing ? t("replay.pause") : t("replay.play")}
           </button>
           <select
             value={speed}
-            aria-label="Replay speed"
+            aria-label={t("replay.speed")}
             onChange={(e) => setSpeed(Number(e.target.value))}
           >
             {[0.5, 1, 2, 5, 10].map((n) => (
               <option value={n} key={n}>
-                {n}×
+                {fmt.number(n, 1)}×
               </option>
             ))}
           </select>
@@ -1530,14 +1519,14 @@ function Replay({
       </div>
       <div className="replay-timer">
         <strong>
-          {(clock / 1000).toFixed(1)}
-          <small>s</small>
+          {fmt.fixed(clock / 1000, 1)}
+          <small>{"s"}</small>
         </strong>
-        <span>{speed}× playback · actual saved request durations</span>
+        <span>{t("replay.playback", { speed: fmt.number(speed, 1) })}</span>
       </div>
       <input
         className="timeline-slider"
-        aria-label="Replay position"
+        aria-label={t("replay.position")}
         type="range"
         min="0"
         max={duration}
@@ -1551,12 +1540,12 @@ function Replay({
           return (
             <section key={lane.id}>
               <div className="lane-heading">
-                <span>LANE {String(i + 1).padStart(2, "0")}</span>
+                <span>{t("replay.lane", { n: String(i + 1).padStart(2, "0") })}</span>
                 <h2>{lane.name}</h2>
               </div>
               <div className="lane-value">
                 {String(done.length).padStart(2, "0")}
-                <span>/ {lane.points.length} decisions</span>
+                <span>{t("replay.decisions", { n: lane.points.length })}</span>
               </div>
               <div className="decision-matrix">
                 {lane.points.map((p, index) => (
@@ -1574,19 +1563,19 @@ function Replay({
                 ))}
               </div>
               <div className="lane-current">
-                <span className="field-label">LATEST DECISION</span>
+                <span className="field-label">{t("replay.latestDecision")}</span>
                 <strong>
                   {last
                     ? String(last.event.data.selected || last.event.data.status)
-                    : "Waiting to start"}
+                    : t("replay.waiting")}
                 </strong>
                 <small>
-                  {last ? String(last.event.data.case_id) : "Aligned at t = 0"}
+                  {last ? String(last.event.data.case_id) : t("replay.aligned")}
                 </small>
               </div>
               <div className="lane-footer">
                 <Timer size={15} />
-                <span>{ms(lane.total)} total request time</span>
+                <span>{t("replay.totalRequestTime", { time: fmt.duration(lane.total) })}</span>
               </div>
             </section>
           );
@@ -1594,11 +1583,7 @@ function Replay({
       </div>
       <div className="limitations">
         <Activity size={18} />
-        <p>
-          These models ran sequentially on one GPU. This replay aligns their
-          measured request sequences; it does not imply simultaneous inference.
-          No model ranking is inferred from animation alone.
-        </p>
+        <p>{t("replay.sequentialNote")}</p>
       </div>
     </>
   );
@@ -1619,16 +1604,22 @@ function Setup({
   onError: (s: string) => void;
   onLocal: () => void;
 }) {
+  const { t } = useTranslation();
+  const fmt = useFormat();
   const [checking, setChecking] = useState(false);
 
   if (!ready)
     return (
       <Empty
         icon={Cpu}
-        title="Inspecting this machine"
-        detail="Checking the GPU, local runtimes and judge login."
+        title={t("setup.emptyTitle")}
+        detail={t("setup.emptyDetail")}
       />
     );
+
+  // Hoisted so the extractor sees these keys (it skips t() calls nested in another t()'s options).
+  const judgeVersion = ready.judge.version || t("setup.notInstalled");
+  const observedModel = ready.judge.observed_model || t("setup.observedNotExposed");
 
   async function prepare() {
     try {
@@ -1639,7 +1630,7 @@ function Setup({
       });
       await onRefresh();
     } catch (e) {
-      onError((e as Error).message);
+      onError(errorText(t, e));
     }
   }
 
@@ -1649,7 +1640,7 @@ function Setup({
       await api("/setup/judge-check", {});
       await onRefresh();
     } catch (e) {
-      onError((e as Error).message);
+      onError(errorText(t, e));
     } finally {
       setChecking(false);
     }
@@ -1661,28 +1652,28 @@ function Setup({
         <div>
           <Cpu size={28} />
           <span>
-            Compute
+            {t("setup.compute")}
             <strong>
-              {ready.hardware.gpu?.name || "No NVIDIA GPU detected"}
+              {ready.hardware.gpu?.name || t("setup.noGpu")}
             </strong>
             <small>
-              {num(ready.hardware.disk_free_gb)} GB free ·{" "}
+              {t("setup.diskFree", { n: fmt.number(ready.hardware.disk_free_gb) })} ·{" "}
               {ready.docker_ready
-                ? "Worker image ready"
-                : "Worker image required"}
+                ? t("setup.workerReady")
+                : t("setup.workerRequired")}
             </small>
           </span>
         </div>
         <div>
           <Terminal size={28} />
           <span>
-            Judge<strong>GPT-6 Astra · Codex CLI</strong>
+            {t("setup.judge")}<strong>{"GPT-6 Astra · Codex CLI"}</strong>
             <small>
               {ready.judge.smoke_passed
-                ? "Live smoke check passed"
+                ? t("setup.judgeSmokePassed")
                 : ready.judge.ready
-                  ? "ChatGPT login found; verify live call"
-                  : "ChatGPT login required"}
+                  ? t("setup.judgeLoginFound")
+                  : t("setup.judgeLoginRequired")}
             </small>
           </span>
           <button
@@ -1690,20 +1681,18 @@ function Setup({
             onClick={check}
             disabled={checking || !!offline}
           >
-            {checking ? "Checking…" : "Verify judge"}
+            {checking ? t("setup.checking") : t("setup.verifyJudge")}
           </button>
         </div>
       </div>
       <div className="section-title setup-title">
         <div>
-          <h2>Model roster</h2>
-          <p>
-            Downloads are pinned, hashed and kept in your private local cache.
-          </p>
+          <h2>{t("setup.roster")}</h2>
+          <p>{t("setup.rosterNote")}</p>
         </div>
         <div className="heading-actions">
           <button className="button secondary compact" onClick={onLocal}>
-            Use ready local models <ArrowRight size={15} />
+            {t("setup.useLocal")} <ArrowRight size={15} />
           </button>
           <button
             className="button primary compact"
@@ -1712,8 +1701,8 @@ function Setup({
           >
             <ArrowDownToLine size={16} />
             {ready.setup.status === "preparing"
-              ? "Preparing…"
-              : "Prepare selected"}
+              ? t("setup.preparing")
+              : t("setup.prepareSelected")}
           </button>
         </div>
       </div>
@@ -1727,11 +1716,11 @@ function Setup({
         <table className="setup-table">
           <thead>
             <tr>
-              <th>ENTRANT</th>
-              <th>EXECUTION</th>
-              <th>REVISION</th>
-              <th>LIMITS</th>
-              <th>READINESS</th>
+              <th>{t("setup.columns.entrant")}</th>
+              <th>{t("setup.columns.execution")}</th>
+              <th>{t("setup.columns.revision")}</th>
+              <th>{t("setup.columns.limits")}</th>
+              <th>{t("setup.columns.readiness")}</th>
             </tr>
           </thead>
           <tbody>
@@ -1753,14 +1742,14 @@ function Setup({
                   </label>
                 </td>
                 <td>
-                  {m.hosted ? "Hosted service" : m.size + " · " + m.precision}
+                  {m.hosted ? t("setup.hosted") : m.size + " · " + m.precision}
                 </td>
                 <td className="mono">
                   {(m.resolved_revision || m.revision).slice(0, 12)}
                   {m.repo && (
                     <a
-                      title="Open model card"
-                      aria-label={`Open ${m.name} model card`}
+                      title={t("setup.openModelCard")}
+                      aria-label={t("setup.openModelCardFor", { name: m.name })}
                       href={`https://huggingface.co/${m.repo}`}
                       target="_blank"
                       rel="noreferrer"
@@ -1770,12 +1759,16 @@ function Setup({
                   )}
                 </td>
                 <td>
-                  {m.max_options} options · {num(m.context)} tokens
+                  {t("setup.limits", { options: m.max_options, tokens: fmt.number(m.context) })}
                 </td>
                 <td>
                   <span className={m.ready ? "accent" : "muted"}>
                     {m.ready ? <Check size={13} /> : <Circle size={10} />}{" "}
-                    {m.ready ? "Ready" : m.reason}
+                    {m.ready
+                      ? t("status.ready")
+                      : m.reason_code
+                        ? t(`readiness.${m.reason_code}`, { defaultValue: m.reason ?? undefined })
+                        : m.reason}
                   </span>
                 </td>
               </tr>
@@ -1787,10 +1780,12 @@ function Setup({
         <section>
           <div className="section-title">
             <div>
-              <h2>Frozen evaluation suite</h2>
+              <h2>{t("setup.frozenSuite")}</h2>
               <p>
-                {num(ready.suites.available)} / {num(ready.suites.expected)}{" "}
-                decisions prepared
+                {t("setup.decisionsPrepared", {
+                  available: fmt.number(ready.suites.available),
+                  expected: fmt.number(ready.suites.expected),
+                })}
               </p>
             </div>
             <Database size={20} />
@@ -1799,51 +1794,45 @@ function Setup({
             <div className="pack-row" key={p.name}>
               <span>
                 {p.ready ? <CheckCircle2 size={15} /> : <Circle size={15} />}{" "}
-                {p.name}
+                {packLabel(t, p.name)}
               </span>
               <strong>
-                {num(p.available)} <small>/ {num(p.expected)}</small>
+                {fmt.number(p.available)} <small>/ {fmt.number(p.expected)}</small>
               </strong>
             </div>
           ))}
         </section>
         <section>
-          <h2>Connections & provenance</h2>
+          <h2>{t("setup.connections")}</h2>
           <div className="connection">
             <Terminal size={19} />
             <div>
-              <strong>Codex CLI</strong>
+              <strong>{"Codex CLI"}</strong>
               <p>
-                {ready.judge.version || "Not installed"} · ChatGPT
-                authentication
+                {t("setup.chatgptAuth", { version: judgeVersion })}
               </p>
               <small>
-                Requested: gpt-6-astra
+                {t("setup.requestedModel", { model: "gpt-6-astra" })}
                 <br />
-                Observed model identifier:{" "}
-                {ready.judge.observed_model || "not exposed by CLI events"}
+                {t("setup.observedModel", { id: observedModel })}
               </small>
             </div>
           </div>
           <div className="connection">
             <Zap size={19} />
             <div>
-              <strong>TypeSafe / Jev</strong>
+              <strong>{"TypeSafe / Jev"}</strong>
               <p>
                 {ready.models.find((m) => m.id === "jev")?.ready
-                  ? "Server-side key configured"
-                  : "Add TYPESAFE_API_KEY to your local .env file."}
+                  ? t("setup.typesafeKeyConfigured")
+                  : t("setup.typesafeKeyMissing")}
               </p>
               <a href="https://typesafe.ai" target="_blank" rel="noreferrer">
-                TypeSafe account <ExternalLink size={12} />
+                {t("setup.typesafeAccount")} <ExternalLink size={12} />
               </a>
             </div>
           </div>
-          <p className="muted small">
-            Keys stay on this machine. Reports exclude credentials and raw CLI
-            logs. Third-party datasets are downloaded from their original
-            sources.
-          </p>
+          <p className="muted small">{t("setup.keysNote")}</p>
           <p className="muted small">{ready.suites.fresh_status}</p>
         </section>
       </div>
