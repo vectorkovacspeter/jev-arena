@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 
 import { createRoot } from "react-dom/client";
 
@@ -180,6 +180,8 @@ const typicalTime = (result: Result | null, id: string) => {
 };
 function App() {
   const { t, i18n } = useTranslation();
+  const tRef = useRef(t);
+  tRef.current = t;
   const [locales, setLocales] = useState<LocaleInfo[]>([]);
   const { page, navigate: setPage, back, canGoBack, backLabel } = useNavigation();
   const [resultsAssessment, setResultsAssessment] = useViewState("resultsAssessment", "arena");
@@ -221,8 +223,12 @@ function App() {
   }, []);
 
   async function changeLanguage(code: string) {
-    if (!offline) await api("/i18n", { language: code });
-    await setLanguage(code);
+    try {
+      if (!offline) await api("/i18n", { language: code });
+      await setLanguage(code);
+    } catch (e) {
+      setError(errorText(t, e));
+    }
   }
 
   const refresh = useCallback(async () => {
@@ -245,9 +251,9 @@ function App() {
           null,
       );
     } catch (e) {
-      setError(errorText(t, e));
+      setError(errorText(tRef.current, e));
     }
-  }, [t]);
+  }, []);
 
   useEffect(() => {
     refresh();
@@ -260,10 +266,10 @@ function App() {
       try {
         setResult(await api<Result>(`/runs/${rid}/results`));
       } catch (e) {
-        setError(errorText(t, e));
+        setError(errorText(tRef.current, e));
       }
     }
-  }, [rid, t]);
+  }, [rid]);
 
   const selectedRunStatus = runs.find(run => run.id === rid)?.status;
   const isLiveRun = !!selectedRunStatus && !terminal.includes(selectedRunStatus);
