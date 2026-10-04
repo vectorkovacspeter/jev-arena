@@ -46,7 +46,7 @@ def public_report(result, run, readiness=None):
     safe['manifest'] = {key: manifest[key] for key in (
         'version', 'created', 'case_sha256', 'case_count', 'order', 'fresh_labels',
         'protocol_sha256', 'implemented_profile_sha256', 'runtime_fingerprint',
-        'judge', 'declared_option_cohort',
+        'judge', 'declared_option_cohort', 'language',
     ) if key in manifest}
     safe['manifest']['hardware'] = hardware
     safe['manifest']['entrants'] = manifest['entrants']
@@ -73,6 +73,7 @@ def public_report(result, run, readiness=None):
             'controls': manifest.get('judge', {}).get('controls'),
         },
         'suites': {
+            'language': manifest.get('language') or 'en',
             'expected': result['case_count'], 'available': 0, 'packs': [],
             'fresh_status': 'Saved report: metrics and case identifiers are included; original input text remains in the source run.',
             'presets': [{'id': result['preset'], 'count': result['case_count'], 'ready': False}],

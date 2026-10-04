@@ -57,3 +57,17 @@ def test_export_uses_recorded_hardware_models_and_judge_version():
     assert exported['readiness']['judge']['version']=='recorded CLI'
     assert 'different export' not in json.dumps(exported)
     assert 'must stay private' not in json.dumps(exported)
+
+
+def test_export_keeps_run_language():
+    result={key:[] for key in ('entrants','comparisons','limitations','episodes')}
+    result.update(run_id='r',status='complete',kind='measured',preset='smoke',case_count=1,matched_count=1,publication_ready=False,performance={},judge_jobs=[])
+    run={'id':'r','created':0,'status':'complete','request':{'preset':'smoke','model_ids':['laya'],'judge':False},'manifest':{'entrants':[],'language':'hu'}}
+    exported=report.public_report(result,run,{})
+    assert exported['run']['manifest']['language']=='hu'
+    assert exported['result']['manifest']['language']=='hu'
+    assert exported['readiness']['suites']['language']=='hu'
+    run['manifest'].pop('language')
+    legacy=report.public_report(result,run,{})
+    assert 'language' not in legacy['run']['manifest']
+    assert legacy['readiness']['suites']['language']=='en'
