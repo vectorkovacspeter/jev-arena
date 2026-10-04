@@ -48,7 +48,7 @@ import { safeLocale } from "./format";
 import { Trans } from "react-i18next";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { EnglishOnly } from "./EnglishOnly";
-import { packLabel, familyLabel, errorText, runLanguage, unpreparedSlots } from "./labels";
+import { packLabel, familyLabel, errorText, runLanguage, unpreparedSlots, dataLanguageFor } from "./labels";
 
 
 import "./styles.css";
@@ -202,6 +202,8 @@ function App({ locales }: { locales: LocaleInfo[] }) {
     try {
       if (!offline) await api("/i18n", { language: code });
       await setLanguage(code);
+      // The server re-reads the inventory for the new test-data language.
+      if (!offline) await refresh();
     } catch (e) {
       setError(errorText(t, e));
     }
@@ -324,7 +326,8 @@ function App({ locales }: { locales: LocaleInfo[] }) {
   // Case counts come from the inventory of the active test-data language; the constants are the English sizes.
   const presetCount = (p: string) =>
     ready?.suites.presets.find((x) => x.id === p)?.count ?? (p === "full" ? 7671 : p === "demo" ? 120 : 36);
-  const dataLanguage = ready?.suites.language || "en";
+  // A saved report describes its own run, so its data line uses the run language, not the viewer's setting.
+  const dataLanguage = dataLanguageFor(!!offline, current, ready?.suites.language);
   const dataLine = (p: string) =>
     ready && (
       <p className="data-language small muted">
@@ -343,6 +346,9 @@ function App({ locales }: { locales: LocaleInfo[] }) {
 
   const displayPreset =
     active || offline ? current?.request.preset || preset : preset;
+
+  // While a run is active (or saved), its result knows the real case count for its language.
+  const runPanelCount = (active || offline) && result ? result.case_count : presetCount(displayPreset);
 
   const planned = result
     ? result.case_count * result.entrants.length
@@ -809,7 +815,7 @@ function App({ locales }: { locales: LocaleInfo[] }) {
                         : t("overview.run.suite", { preset: presetLabel(displayPreset) })}
                     </span>
                     <span>
-                      {t("overview.run.cases", { count: presetCount(displayPreset), n: fmt.number(presetCount(displayPreset)) })}{" "}
+                      {t("overview.run.cases", { count: runPanelCount, n: fmt.number(runPanelCount) })}{" "}
                       <ChevronDown size={12} />
                     </span>
                   </button>

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { answerId, runLanguage, unpreparedSlots, slug } from '../src/labels.ts';
+import { answerId, runLanguage, unpreparedSlots, slug, dataLanguageFor } from '../src/labels.ts';
 import { languageName } from '../src/format.ts';
 
 test('episode answers compare by stable id on Hungarian runs and by answer on English runs', () => {
@@ -15,6 +15,13 @@ test('run language defaults to English for runs recorded before i18n', () => {
   assert.equal(runLanguage({ manifest: {} }), 'en');
   assert.equal(runLanguage({ manifest: { language: 'hu' } }), 'hu');
   assert.equal(runLanguage(undefined), 'en');
+});
+
+test('saved reports show the run language, live workspaces the setting', () => {
+  assert.equal(dataLanguageFor(true, { manifest: { language: 'hu' } }, 'en'), 'hu');
+  assert.equal(dataLanguageFor(true, { manifest: {} }, 'hu'), 'en');
+  assert.equal(dataLanguageFor(false, { manifest: { language: 'hu' } }, 'en'), 'en');
+  assert.equal(dataLanguageFor(false, null, undefined), 'en');
 });
 
 test('only fillable slots count as unprepared', () => {

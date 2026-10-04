@@ -21,6 +21,13 @@ export const errorText = (t: TFunction, e: unknown) => {
 export const runLanguage = (run: { manifest?: { language?: unknown } } | null | undefined) =>
   typeof run?.manifest?.language === "string" && run.manifest.language ? run.manifest.language : "en";
 
+/** Test-data language to show: a saved report uses its run's language, a live workspace its current setting. */
+export const dataLanguageFor = (
+  offline: boolean,
+  run: { manifest?: { language?: unknown } } | null | undefined,
+  settingLanguage: string | null | undefined,
+) => (offline ? runLanguage(run) : settingLanguage || "en");
+
 /** Stable (English) id of an episode answer: non-English runs store the localized label in `answer` and the id in `answer_id`. */
 export const answerId = (step: { answer: string | null; answer_id?: string | null } | null | undefined) =>
   step ? (step.answer_id ?? step.answer) : null;
